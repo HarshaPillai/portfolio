@@ -1,23 +1,23 @@
 import { notFound } from "next/navigation";
-import { projects } from "@/lib/projects";
-import CaseStudyClient from "@/components/CaseStudyClient";
+import { sanityClient } from "@/lib/sanity";
+import { projectBySlugQuery } from "@/lib/queries";
+import type { Project } from "@/types";
+import CaseStudyContent from "@/components/CaseStudyContent";
 
-type Props = {
-  params: { slug: string };
-};
+// Dynamic rendering — Sanity data fetched on demand, cached per revalidate window
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  return projects.map((p) => ({ slug: p.slug }));
-}
+type Props = { params: Promise<{ slug: string }> };
 
-export default function CaseStudyPage({ params }: Props) {
-  const project = projects.find((p) => p.slug === params.slug);
+export default async function CaseStudyPage({ params }: Props) {
+  const { slug } = await params;
+
+  const project: Project | null = await sanityClient.fetch(
+    projectBySlugQuery,
+    { slug }
+  );
 
   if (!project) notFound();
 
-  return (
-    <div className="w-full h-full overflow-auto">
-      <CaseStudyClient project={project} />
-    </div>
-  );
+  return <CaseStudyContent project={project} />;
 }

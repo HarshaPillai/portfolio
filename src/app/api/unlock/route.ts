@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { projects } from "@/lib/projects";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { slug, password } = body as { slug: string; password: string };
+  const { password } = body as { slug?: string; password?: string };
 
-  if (!slug || !password) {
+  if (!password) {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 
-  const project = projects.find((p) => p.slug === slug);
-
-  if (!project || !project.password) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const envKey = project.password;
-  const expected = process.env[envKey];
+  const expected = process.env.NDA_PASSWORD;
 
   if (!expected) {
     // Env var not set — fail closed
@@ -27,5 +19,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({ ok: true }, { status: 200 });
+  return NextResponse.json({ ok: true });
 }

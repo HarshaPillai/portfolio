@@ -1,88 +1,82 @@
 export default function AboutPage() {
   return (
-    <div className="w-full h-full overflow-hidden flex items-center justify-center">
-      <div className="p-8 md:p-12 max-w-xl w-full">
-        {/* Name / title */}
-        <div className="mb-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-faint mb-3">
-            About
-          </p>
-          <h1 className="font-serif text-4xl font-bold text-ink leading-tight">
-            Harsha Pillai
-          </h1>
-          <p className="font-mono text-[11px] text-ink-muted mt-2 tracking-wider">
-            Product designer who ships code.
-          </p>
-        </div>
+    <main className="px-8 md:px-12 pt-16 min-h-[calc(100vh-var(--nav-height))] flex items-start">
+      <div className="max-w-xl w-full">
+        {/* Label */}
+        <p className="font-mono text-[11px] text-muted tracking-widest uppercase mb-10">
+          About
+        </p>
 
-        {/* Divider */}
-        <div className="h-px bg-kraft-dark/60 mb-8" />
-
-        {/* Bio — puzzle framing */}
-        <div className="paper-card rounded-sm p-6 mb-6 relative">
-          <div className="tape" />
-          <div className="relative z-10 space-y-3">
-            <p className="font-sans text-[13px] text-ink leading-[1.75]">
-              I&apos;ve always been drawn to puzzles. The kind where there&apos;s
-              no obvious right answer — just a mess of constraints, people,
-              and competing needs.
-            </p>
-            <p className="font-sans text-[13px] text-ink-muted leading-[1.75]">
-              Somewhere along the way those puzzles stopped being hypothetical
-              and became real products, real users, real businesses. Turns out
-              I like them even more with stakes.
-            </p>
-          </div>
+        {/* Bio */}
+        <div className="space-y-5 mb-14">
+          <p className="font-sans text-[15px] text-foreground leading-[1.8]">
+            I&apos;ve always been drawn to puzzles. The kind where there&apos;s
+            no obvious right answer — just a mess of constraints, people, and
+            competing needs.
+          </p>
+          <p className="font-sans text-[15px] text-foreground leading-[1.8]">
+            Somewhere along the way those puzzles stopped being hypothetical and
+            became real products, real users, real businesses. Turns out I like
+            them even more with stakes.
+          </p>
+          <p className="font-sans text-[15px] text-foreground leading-[1.8]">
+            I design SaaS products end-to-end — from blank canvas to shipped
+            code. I build with AI to compress the distance between an idea and
+            something you can interact with.
+          </p>
         </div>
 
         {/* Currently / Looking for */}
-        <div className="grid grid-cols-2 gap-4">
+        <div
+          className="grid grid-cols-2 gap-10 pt-8 mb-14"
+          style={{ borderTop: "1px solid rgba(10,10,10,0.08)" }}
+        >
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-ink-faint mb-1.5">
+            <p className="font-mono text-[11px] text-muted tracking-widest uppercase mb-3">
               Currently
             </p>
-            <p className="font-sans text-[12px] text-ink-muted leading-relaxed">
-              Building at the intersection of design and engineering.
-              Placeholder — update with your current role.
+            <p className="font-sans text-[13px] text-foreground leading-relaxed">
+              Placeholder — add your current role or focus here.
             </p>
           </div>
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-ink-faint mb-1.5">
+            <p className="font-mono text-[11px] text-muted tracking-widest uppercase mb-3">
               Looking for
             </p>
-            <p className="font-sans text-[12px] text-ink-muted leading-relaxed">
-              Founding design roles, small teams, hard problems.
+            <p className="font-sans text-[13px] text-foreground leading-relaxed">
+              Founding design roles at early-stage SaaS companies.
+              <br />
               Available July 2025.
             </p>
           </div>
         </div>
 
-        {/* Contact row */}
-        <div className="mt-8 pt-5 border-t border-kraft-dark/50 flex items-center gap-4">
+        {/* Contact */}
+        <div className="flex items-center gap-8">
           <a
-            href="mailto:hello@harshapillai.com"
-            className="font-mono text-[10px] text-rust hover:underline uppercase tracking-widest"
+            href="mailto:harsha@harshapillai.com"
+            className="font-mono text-[11px] tracking-widest uppercase text-foreground hover:text-accent transition-colors duration-200"
           >
-            Email ↗
+            Email
           </a>
           <a
             href="https://linkedin.com/in/harshapillai"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-[10px] text-ink-muted hover:text-ink hover:underline uppercase tracking-widest transition-colors"
+            className="font-mono text-[11px] tracking-widest uppercase text-muted hover:text-foreground transition-colors duration-200"
           >
-            LinkedIn ↗
+            LinkedIn
           </a>
           <a
             href="https://read.cv/harshapillai"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-[10px] text-ink-muted hover:text-ink hover:underline uppercase tracking-widest transition-colors"
+            className="font-mono text-[11px] tracking-widest uppercase text-muted hover:text-foreground transition-colors duration-200"
           >
-            Read.cv ↗
+            Read.cv
           </a>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

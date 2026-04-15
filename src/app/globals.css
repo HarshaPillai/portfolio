@@ -2,167 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --sidebar-width: 220px;
-  --font-playfair: "Playfair Display", Georgia, "Times New Roman", serif;
-  --font-dm-mono: "DM Mono", "Courier New", monospace;
-  --font-inter: "Inter", system-ui, -apple-system, sans-serif;
-}
-
 @layer base {
-  html,
-  body {
-    height: 100%;
-    overflow: hidden;
+  :root {
+    --nav-height: 56px;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
-    background-color: #F5F0E8;
-    color: #1A1614;
-    font-family: var(--font-inter), system-ui, sans-serif;
+    background-color: #F5F4F0;
+    color: #0A0A0A;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 
-  /* On mobile, allow scrolling */
-  @media (max-width: 767px) {
-    html,
-    body {
-      overflow: auto;
-    }
+  ::selection {
+    background: #1B3A5C;
+    color: #F5F4F0;
   }
 }
 
 @layer components {
-  /* Sidebar kraft texture */
-  .sidebar-texture {
-    background-color: #E8E0CC;
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  /* Project frame — starts blurred, unblurs on scroll */
+  .project-frame {
+    transition:
+      filter 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
-  /* Paper card base */
-  .paper-card {
-    background-color: #FDFAF4;
-    box-shadow: 2px 3px 8px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
-    position: relative;
+  .project-frame .frame-thumbnail {
+    filter: blur(12px);
+    opacity: 0.55;
+    transform: translateY(6px) scale(1.04);
+    transition:
+      filter 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
-  .paper-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
+  .project-frame .frame-meta {
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.5s ease 0.2s,
+      transform 0.5s ease 0.2s;
   }
 
-  /* Binder clip */
-  .binder-clip {
-    position: absolute;
-    top: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 28px;
-    height: 16px;
-    z-index: 10;
+  .project-frame.in-view .frame-thumbnail {
+    filter: blur(0px);
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 
-  .binder-clip::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 16px;
-    height: 8px;
-    background: #8B7355;
-    border-radius: 1px 1px 0 0;
-    box-shadow: 0 -2px 0 #6B5A40, inset 0 1px 0 rgba(255,255,255,0.2);
+  .project-frame.in-view .frame-meta {
+    opacity: 1;
+    transform: translateY(0);
   }
 
-  .binder-clip::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 28px;
-    height: 4px;
-    background: #8B7355;
-    border-radius: 1px;
-    box-shadow: 0 2px 3px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+  /* NDA frames: never unblur */
+  .project-frame.nda .frame-thumbnail {
+    filter: blur(14px) !important;
+    opacity: 0.5 !important;
+    transform: none !important;
   }
 
-  /* Corner pin */
-  .corner-pin {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #D4A843, #8B6914);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
-    z-index: 10;
-  }
-
-  /* Tape strip */
-  .tape {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%) rotate(-1deg);
-    width: 56px;
-    height: 20px;
-    background: rgba(255, 235, 150, 0.55);
-    border: 1px solid rgba(200, 180, 80, 0.3);
-    z-index: 10;
-  }
-
-  /* Nav link */
-  .nav-link {
-    @apply font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors duration-150;
-  }
-
-  .nav-link:hover,
-  .nav-link.active {
-    @apply text-ink;
-  }
-
-  .nav-link.active {
-    @apply font-mono text-xs uppercase tracking-widest text-ink;
-  }
-
-  /* Tag pill */
-  .tag {
-    @apply font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm;
-    background: rgba(26,22,20,0.07);
-    color: #6B6560;
-  }
-
-  /* Handwritten caption */
-  .caption-handwritten {
-    font-family: var(--font-playfair), Georgia, serif;
-    font-style: italic;
-    font-size: 0.8rem;
-    color: #6B6560;
-    transform: rotate(-2deg);
-    display: inline-block;
+  .project-frame.nda .frame-meta {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
 @layer utilities {
-  .canvas-area {
-    margin-left: var(--sidebar-width);
-    height: 100vh;
-    overflow: hidden;
-    position: relative;
-  }
-
-  @media (max-width: 767px) {
-    .canvas-area {
-      margin-left: 0;
-      margin-top: 56px;
-      height: auto;
-      overflow: visible;
-    }
+  .mono {
+    font-family: var(--font-geist-mono), monospace;
   }
 }
