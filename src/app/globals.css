@@ -17,6 +17,12 @@
   --sidebar-width: 200px;
 }
 
+/* ─── Scroll indicator bounce ──────────────────────────────────────────────── */
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;

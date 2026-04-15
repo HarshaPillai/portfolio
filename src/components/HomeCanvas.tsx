@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 // ─── Project data ─────────────────────────────────────────────────────────────
 const PROJECTS = [
@@ -40,22 +39,69 @@ const PROJECTS = [
   },
 ];
 
-// ─── Scatter layout: [left%, top%, widthpx, heightpx] ────────────────────────
-const SCATTER: [string, string, number, number][] = [
-  ["29%", "13%", 160, 120],
-  ["45%", "10%", 140, 105],
-  ["19%", "36%", 165, 125],
-  ["60%", "33%", 130, 100],
-];
+// ─── Slot configuration ───────────────────────────────────────────────────────
+// slotAssignment[slotIdx] = projectIdx
+// Slot 0 = active (large, fills image area)
+// Slots 1–3 = scattered orbital positions, blur increases with distance from 0
 
-// Clockwise orbital exit vectors per thumbnail
-const ORBITAL_EXIT = [
-  // phase1 (drift):        phase2 (exit):
-  { p1: { x: 80,  y: 10,  r: 20,  s: 0.75 }, p2: { x: 0,   y: 0,   s: 0, o: 0 } },
-  { p1: { x: 40,  y: 80,  r: -15, s: 0.70 }, p2: { x: 200, y: 300, s: 0, o: 0 } },
-  { p1: { x: 60,  y: -70, r: 25,  s: 0.70 }, p2: { x: -100,y: -300,s: 0, o: 0 } },
-  { p1: { x: -50, y: 70,  r: -25, s: 0.65 }, p2: { x: -300,y: 200, s: 0, o: 0 } },
-];
+type SlotConfig = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  blur: number;
+  opacity: number;
+  zIndex: number;
+};
+
+function computeSlots(cW: number, cH: number): SlotConfig[] {
+  const metaW = 300;
+  const imgL = metaW;
+  const imgW = cW - metaW;
+
+  return [
+    // Slot 0: active — fills the image area, no blur
+    {
+      left: imgL,
+      top: 0,
+      width: imgW,
+      height: cH,
+      blur: 0,
+      opacity: 1,
+      zIndex: 10,
+    },
+    // Slot 1: upper-left of image area (just left active / entering active)
+    {
+      left: imgL + imgW * 0.06,
+      top: cH * 0.08,
+      width: 155,
+      height: 116,
+      blur: 4,
+      opacity: 0.9,
+      zIndex: 6,
+    },
+    // Slot 2: furthest — upper-right, most blurred
+    {
+      left: imgL + imgW * 0.65,
+      top: cH * 0.08,
+      width: 125,
+      height: 94,
+      blur: 8,
+      opacity: 0.5,
+      zIndex: 3,
+    },
+    // Slot 3: lower center — approaching active from below
+    {
+      left: imgL + imgW * 0.3,
+      top: cH * 0.73,
+      width: 148,
+      height: 111,
+      blur: 4,
+      opacity: 0.85,
+      zIndex: 6,
+    },
+  ];
+}
 
 // ─── SVG social icons ─────────────────────────────────────────────────────────
 function MediumIcon() {
@@ -74,7 +120,10 @@ function LinkedInIcon() {
       <rect x="1.5" y="1.5" width="17" height="17" rx="2.5" stroke="#B5B5B5" strokeWidth="1.3" />
       <rect x="5" y="8.5" width="2.2" height="6" fill="#B5B5B5" />
       <circle cx="6.1" cy="6.2" r="1.2" fill="#B5B5B5" />
-      <path d="M9.5 8.5h2.1v.9c.4-.65 1.1-1.1 2-.1 1.4 0 1.9 1 1.9 2.4V14.5H13.3v-2.4c0-.7-.2-1.3-.9-1.3-.7 0-1.1.5-1.1 1.3v2.4H9.5V8.5z" fill="#B5B5B5" />
+      <path
+        d="M9.5 8.5h2.1v.9c.4-.65 1.1-1.1 2-.1 1.4 0 1.9 1 1.9 2.4V14.5H13.3v-2.4c0-.7-.2-1.3-.9-1.3-.7 0-1.1.5-1.1 1.3v2.4H9.5V8.5z"
+        fill="#B5B5B5"
+      />
     </svg>
   );
 }
@@ -107,19 +156,20 @@ function MetaRow({
         marginBottom: "12px",
         borderBottom: "1px solid #E5E5E5",
         display: "grid",
-        gridTemplateColumns: "64px 1fr",
-        gap: "0 16px",
+        gridTemplateColumns: "56px 1fr",
+        gap: "0 10px",
         alignItems: "start",
       }}
     >
       <span
         style={{
           fontFamily: "var(--font-dm-mono), monospace",
-          fontSize: "14px",
+          fontSize: "11px",
           fontWeight: 400,
-          letterSpacing: "-0.09em",
-          color: "rgba(58,58,58,0.5)",
-          paddingTop: "4px",
+          letterSpacing: "-0.06em",
+          color: "rgba(58,58,58,0.45)",
+          paddingTop: "3px",
+          textTransform: "uppercase",
         }}
       >
         {label}
@@ -127,11 +177,11 @@ function MetaRow({
       <span
         style={{
           fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-          fontSize: "18px",
+          fontSize: "14px",
           fontWeight: 500,
-          letterSpacing: "-0.05em",
+          letterSpacing: "-0.04em",
           color: "#3A3A3A",
-          lineHeight: 1.4,
+          lineHeight: 1.45,
         }}
       >
         {children}
@@ -142,325 +192,199 @@ function MetaRow({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function HomeCanvas() {
-  const pinRef = useRef<HTMLDivElement>(null);
-  const scatteredLayerRef = useRef<HTMLDivElement>(null);
-  const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const posTextRef = useRef<HTMLDivElement>(null);
-  const detailLayerRef = useRef<HTMLDivElement>(null);
-  const panelContentRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const frameRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // slotAssignment[slotIdx] = projectIdx — which project lives in which slot
+  const slotRef = useRef<number[]>([0, 1, 2, 3]);
+  const animRef = useRef(false);
+  const [activeProjIdx, setActiveProjIdx] = useState(0);
 
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isDetailed, setIsDetailed] = useState(false);
-
-  // Cycle project with fade
-  const cycleProject = useCallback(
-    (dir: 1 | -1) => {
-      const next = (activeIndex + dir + PROJECTS.length) % PROJECTS.length;
-      if (!panelContentRef.current) {
-        setActiveIndex(next);
-        return;
-      }
-      gsap.to(panelContentRef.current, {
-        opacity: 0,
-        duration: 0.18,
-        ease: "power2.in",
-        onComplete: () => {
-          setActiveIndex(next);
-          gsap.to(panelContentRef.current, {
-            opacity: 1,
-            duration: 0.22,
-            ease: "power2.out",
-          });
-        },
-      });
-    },
-    [activeIndex]
-  );
-
-  // GSAP ScrollTrigger setup
   useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const ctx = gsap.context(() => {
+    // Set initial absolute positions via GSAP (canvas dimensions now available)
+    const slots = computeSlots(canvas.offsetWidth, canvas.offsetHeight);
+    frameRefs.current.forEach((frame, i) => {
+      if (!frame) return;
+      const s = slots[i]; // project i starts in slot i
+      gsap.set(frame, {
+        left: s.left,
+        top: s.top,
+        width: s.width,
+        height: s.height,
+        filter: `blur(${s.blur}px)`,
+        opacity: s.opacity,
+        zIndex: s.zIndex,
+      });
+    });
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (animRef.current) return;
+      animRef.current = true;
+
+      const old = slotRef.current;
+      // scroll up (deltaY < 0)  → clockwise: slot3 → slot0, slot0 → slot1, slot1 → slot2, slot2 → slot3
+      // scroll down (deltaY > 0) → counter-clockwise: slot1 → slot0, slot0 → slot3, slot2 → slot1, slot3 → slot2
+      const next =
+        e.deltaY < 0
+          ? [old[3], old[0], old[1], old[2]]
+          : [old[1], old[2], old[3], old[0]];
+
+      slotRef.current = next;
+      setActiveProjIdx(next[0]);
+
+      const s = computeSlots(canvas.offsetWidth, canvas.offsetHeight);
       const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: pinRef.current,
-          start: "top top",
-          end: "+=700",
-          pin: true,
-          pinSpacing: true,
-          scrub: 1.2,
-          onUpdate(self) {
-            if (self.progress >= 0.88) {
-              setIsDetailed(true);
-            } else {
-              setIsDetailed(false);
-            }
-          },
+        onComplete: () => {
+          animRef.current = false;
         },
       });
 
-      // ── Phase 1 (0 → 0.5): all thumbs begin clockwise orbital drift ─────
-      thumbRefs.current.forEach((el, i) => {
-        if (!el) return;
+      frameRefs.current.forEach((frame, projIdx) => {
+        if (!frame) return;
+        const slotIdx = next.indexOf(projIdx);
+        const slot = s[slotIdx];
         tl.to(
-          el,
+          frame,
           {
-            x: ORBITAL_EXIT[i].p1.x,
-            y: ORBITAL_EXIT[i].p1.y,
-            rotation: ORBITAL_EXIT[i].p1.r,
-            scale: ORBITAL_EXIT[i].p1.s,
-            filter: "blur(8px)",
-            ease: "none",
-            duration: 0.5,
+            left: slot.left,
+            top: slot.top,
+            width: slot.width,
+            height: slot.height,
+            filter: `blur(${slot.blur}px)`,
+            opacity: slot.opacity,
+            zIndex: slot.zIndex,
+            duration: 0.65,
+            ease: "power2.inOut",
           },
-          0
+          0 // all 4 frames animate simultaneously
         );
       });
+    };
 
-      // Positioning text exits up
-      tl.to(
-        posTextRef.current,
-        { opacity: 0, y: -18, ease: "none", duration: 0.4 },
-        0
-      );
-
-      // ── Phase 2 (0.45 → 0.85): non-active thumbs spiral off screen ──────
-      [1, 2, 3].forEach((i) => {
-        const el = thumbRefs.current[i];
-        if (!el) return;
-        tl.to(
-          el,
-          {
-            x: ORBITAL_EXIT[i].p2.x,
-            y: ORBITAL_EXIT[i].p2.y,
-            scale: ORBITAL_EXIT[i].p2.s,
-            opacity: ORBITAL_EXIT[i].p2.o,
-            ease: "none",
-            duration: 0.4,
-          },
-          0.45
-        );
-      });
-
-      // Active thumb (0) fades as it "becomes" the panel image
-      tl.to(
-        thumbRefs.current[0],
-        { opacity: 0, scale: 0.3, ease: "none", duration: 0.3 },
-        0.5
-      );
-
-      // ── Phase 3 (0.65 → 1.0): detailed panel appears ────────────────────
-      tl.fromTo(
-        detailLayerRef.current,
-        { opacity: 0 },
-        { opacity: 1, ease: "none", duration: 0.35 },
-        0.65
-      );
-    }, pinRef);
-
-    return () => ctx.revert();
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
   }, []);
 
-  const project = PROJECTS[activeIndex];
+  const proj = PROJECTS[activeProjIdx];
 
   return (
     <div
-      ref={pinRef}
-      className="relative w-full overflow-hidden"
-      style={{ height: "100vh" }}
+      ref={canvasRef}
+      style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden" }}
     >
-      {/* ── Social icons — always visible, top right ─────────────────────── */}
+      {/* ── Social icons — top right, always on top ─────────────────────── */}
       <div
-        className="absolute z-30 flex items-center gap-4"
-        style={{ top: "28px", right: "32px" }}
+        style={{
+          position: "absolute",
+          top: 28,
+          right: 32,
+          zIndex: 30,
+          display: "flex",
+          gap: 16,
+          alignItems: "center",
+        }}
       >
-        <a href="https://medium.com/@harshapillai" target="_blank" rel="noopener noreferrer" aria-label="Medium">
+        <a
+          href="https://medium.com/@harshapillai"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Medium"
+        >
           <MediumIcon />
         </a>
-        <a href="https://linkedin.com/in/harshapillai" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+        <a
+          href="https://linkedin.com/in/harshapillai"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="LinkedIn"
+        >
           <LinkedInIcon />
         </a>
-        <a href="https://github.com/harshapillai" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+        <a
+          href="https://github.com/harshapillai"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="GitHub"
+        >
           <GitHubIcon />
         </a>
       </div>
 
-      {/* ── Scattered layer ───────────────────────────────────────────────── */}
-      <div ref={scatteredLayerRef} className="absolute inset-0">
-        {/* Thumbnails */}
-        {SCATTER.map(([left, top, w, h], i) => (
-          <div
-            key={i}
-            ref={(el) => { thumbRefs.current[i] = el; }}
-            className="absolute"
-            style={{
-              left,
-              top,
-              width: `${w}px`,
-              height: `${h}px`,
-              backgroundColor: "#C4C4C4",
-              filter: "blur(4px)",
-              opacity: 0.6,
-              willChange: "transform, opacity, filter",
-            }}
-          />
-        ))}
-
-        {/* Positioning text */}
-        <div
-          ref={posTextRef}
-          className="absolute"
-          style={{
-            left: "50%",
-            top: "48%",
-            transform: "translate(-50%, -50%)",
-            textAlign: "center",
-            maxWidth: "380px",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: "24px",
-              fontWeight: 500,
-              letterSpacing: "-0.05em",
-              color: "#3A3A3A",
-              lineHeight: 1.45,
-            }}
-          >
-            Harsha is an{" "}
-            <span style={{ color: "#F35900" }}>end-to-end designer.</span>
-            <br />
-            She thinks in systems, designs for
-            <br />
-            people, and ships with AI.
-          </p>
-        </div>
-
-        {/* SCROLL ↓ */}
-        <div
-          className="absolute"
-          style={{
-            bottom: "32px",
-            right: "32px",
-            fontFamily: "var(--font-dm-mono), monospace",
-            fontSize: "11px",
-            letterSpacing: "-0.09em",
-            color: "#B5B5B5",
-          }}
-        >
-          SCROLL &nbsp;↓
-        </div>
-      </div>
-
-      {/* ── Detailed layer ────────────────────────────────────────────────── */}
+      {/* ── Metadata panel — always visible, left 300px ─────────────────── */}
       <div
-        ref={detailLayerRef}
-        className="absolute inset-0"
         style={{
-          opacity: 0,
-          pointerEvents: isDetailed ? "auto" : "none",
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: 300,
+          height: "100%",
+          zIndex: 20,
+          backgroundColor: "#FFFFFF",
+          borderRight: "1px solid #E5E5E5",
+          padding: "64px 24px 48px",
+          boxSizing: "border-box",
+          overflow: "hidden",
         }}
       >
+        <MetaRow label="Project">
+          {proj.name}{" "}
+          <span style={{ color: "#F35900", marginLeft: 2 }}>↗</span>
+        </MetaRow>
+        <MetaRow label="Client">{proj.client}</MetaRow>
+        <MetaRow label="Year">{proj.year}</MetaRow>
+        <MetaRow label="About">{proj.about}</MetaRow>
+        <MetaRow label="Tags">
+          <span style={{ display: "flex", flexWrap: "wrap", gap: "4px 8px" }}>
+            {proj.tags.map((t) => (
+              <span
+                key={t}
+                style={{
+                  color: "#B5B5B5",
+                  fontFamily: "var(--font-dm-mono), monospace",
+                  fontSize: "11px",
+                  letterSpacing: "-0.06em",
+                }}
+              >
+                {t}
+              </span>
+            ))}
+          </span>
+        </MetaRow>
+      </div>
+
+      {/* ── Frame divs — one per project, positions controlled by GSAP ───── */}
+      {PROJECTS.map((_, i) => (
         <div
-          ref={panelContentRef}
-          className="absolute inset-0 flex"
-          style={{ paddingTop: "64px", paddingLeft: "40px", paddingRight: "40px" }}
-        >
-          {/* Left: metadata panel */}
-          <div style={{ width: "340px", flexShrink: 0, paddingTop: "16px" }}>
-            <MetaRow label="PROJECT">
-              {project.name}{" "}
-              <span style={{ color: "#F35900", marginLeft: "4px" }}>↗</span>
-            </MetaRow>
-            <MetaRow label="CLIENT">{project.client}</MetaRow>
-            <MetaRow label="YEAR">{project.year}</MetaRow>
-            <MetaRow label="ABOUT">{project.about}</MetaRow>
-            <MetaRow label="TAGS">
-              {project.tags.map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    marginRight: "12px",
-                    color: "#B5B5B5",
-                    fontFamily: "var(--font-dm-mono), monospace",
-                    fontSize: "14px",
-                    letterSpacing: "-0.09em",
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </MetaRow>
-          </div>
+          key={i}
+          ref={(el) => {
+            frameRefs.current[i] = el;
+          }}
+          style={{
+            position: "absolute",
+            backgroundColor: "#C4C4C4",
+            opacity: 0, // GSAP sets actual opacity after mount
+          }}
+        />
+      ))}
 
-          {/* Right: large image + nav arrows */}
-          <div
-            className="flex-1 flex flex-col items-center justify-center"
-            style={{ gap: "16px" }}
-          >
-            {/* Up arrow */}
-            <button
-              onClick={() => cycleProject(-1)}
-              aria-label="Previous project"
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                backgroundColor: "#0A0A0A",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                transition: "opacity 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 11.5V2.5M3 6l4-4 4 4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            {/* Image placeholder */}
-            <div
-              style={{
-                width: "580px",
-                maxWidth: "100%",
-                height: "435px",
-                backgroundColor: "#C4C4C4",
-              }}
-            />
-
-            {/* Down arrow */}
-            <button
-              onClick={() => cycleProject(1)}
-              aria-label="Next project"
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                backgroundColor: "#0A0A0A",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                transition: "opacity 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 2.5v9M3 8l4 4 4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      {/* ── SCROLL ↑ indicator — bottom right with bounce ────────────────── */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 32,
+          right: 32,
+          zIndex: 25,
+          fontFamily: "var(--font-dm-mono), monospace",
+          fontSize: "11px",
+          letterSpacing: "-0.09em",
+          color: "#B5B5B5",
+          animation: "scrollBounce 1.5s ease-in-out infinite",
+        }}
+      >
+        SCROLL&nbsp;↑
       </div>
     </div>
   );

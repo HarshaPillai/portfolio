@@ -29,7 +29,7 @@ export default function Sidebar() {
             className="block leading-none"
             style={{
               fontFamily: "var(--font-radio-grotesk), Impact, sans-serif",
-              fontSize: "48px",
+              fontSize: "28px",
               fontWeight: 700,
               color: "#F35900",
               letterSpacing: 0,
