@@ -15,51 +15,79 @@ export default function CaseStudyContent({ project }: Props) {
     return <PasswordGate slug={project.slug.current} onUnlock={() => setUnlocked(true)} />;
   }
 
+  const mono: React.CSSProperties = {
+    fontFamily: "var(--font-dm-mono), monospace",
+    fontSize: "14px",
+    letterSpacing: "-0.09em",
+    color: "rgba(58,58,58,0.5)",
+  };
+
+  const label = mono;
+
   return (
-    <article className="px-8 md:px-12 pt-16 pb-32 max-w-site mx-auto">
+    <article style={{ padding: "48px 48px 128px", maxWidth: "1000px" }}>
       {/* Back */}
       <a
         href="/"
-        className="font-mono text-[11px] text-muted tracking-widest uppercase hover:text-foreground transition-colors duration-200 inline-block mb-16"
+        style={{ ...mono, textDecoration: "none", display: "inline-block", marginBottom: "48px" }}
       >
         ← Work
       </a>
 
       {/* Header */}
-      <header className="mb-16 max-w-2xl">
-        <dl className="flex flex-wrap gap-x-8 gap-y-1 mb-6">
+      <header style={{ marginBottom: "48px", maxWidth: "640px" }}>
+        <dl style={{ display: "flex", flexWrap: "wrap", gap: "0 32px", marginBottom: "24px" }}>
           {project.year && (
-            <div className="flex gap-2 items-baseline">
-              <dt className="font-mono text-[11px] text-muted w-14">Year</dt>
-              <dd className="font-mono text-[11px] text-foreground">{project.year}</dd>
+            <div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}>
+              <dt style={label}>Year</dt>
+              <dd style={{ ...mono, color: "#3A3A3A" }}>{project.year}</dd>
             </div>
           )}
           {project.duration && (
-            <div className="flex gap-2 items-baseline">
-              <dt className="font-mono text-[11px] text-muted w-14">Duration</dt>
-              <dd className="font-mono text-[11px] text-foreground">{project.duration}</dd>
+            <div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}>
+              <dt style={label}>Duration</dt>
+              <dd style={{ ...mono, color: "#3A3A3A" }}>{project.duration}</dd>
             </div>
           )}
           {project.role && (
-            <div className="flex gap-2 items-baseline">
-              <dt className="font-mono text-[11px] text-muted w-14">Role</dt>
-              <dd className="font-mono text-[11px] text-foreground">{project.role}</dd>
+            <div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}>
+              <dt style={label}>Role</dt>
+              <dd style={{ ...mono, color: "#3A3A3A" }}>{project.role}</dd>
             </div>
           )}
           {project.type && (
-            <div className="flex gap-2 items-baseline">
-              <dt className="font-mono text-[11px] text-muted w-14">Type</dt>
-              <dd className="font-mono text-[11px] text-foreground">{project.type}</dd>
+            <div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}>
+              <dt style={label}>Type</dt>
+              <dd style={{ ...mono, color: "#3A3A3A" }}>{project.type}</dd>
             </div>
           )}
         </dl>
 
-        <h1 className="font-sans text-3xl md:text-4xl font-medium tracking-tight text-foreground leading-snug mb-6">
+        <h1
+          style={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontSize: "clamp(28px, 4vw, 40px)",
+            fontWeight: 500,
+            letterSpacing: "-0.05em",
+            color: "#3A3A3A",
+            lineHeight: 1.2,
+            marginBottom: "20px",
+          }}
+        >
           {project.title}
         </h1>
 
         {project.hook && (
-          <p className="font-sans text-lg text-muted leading-relaxed">
+          <p
+            style={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontSize: "18px",
+              fontWeight: 500,
+              letterSpacing: "-0.05em",
+              color: "#B5B5B5",
+              lineHeight: 1.6,
+            }}
+          >
             {project.hook}
           </p>
         )}
@@ -93,13 +121,31 @@ export default function CaseStudyContent({ project }: Props) {
         {project.decisions && project.decisions.length > 0 && (
           <section>
             <SectionLabel>Design Decisions</SectionLabel>
-            <div className="space-y-10 mt-6">
+            <div style={{ display: "flex", flexDirection: "column", gap: "32px", marginTop: "20px" }}>
               {project.decisions.map((d) => (
                 <div key={d._key}>
-                  <h3 className="font-sans text-base font-medium text-foreground mb-2">
+                  <h3
+                    style={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontSize: "17px",
+                      fontWeight: 500,
+                      letterSpacing: "-0.05em",
+                      color: "#3A3A3A",
+                      marginBottom: "8px",
+                    }}
+                  >
                     {d.decisionTitle}
                   </h3>
-                  <p className="font-sans text-[15px] text-muted leading-relaxed">
+                  <p
+                    style={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 500,
+                      letterSpacing: "-0.05em",
+                      color: "#B5B5B5",
+                      lineHeight: 1.75,
+                    }}
+                  >
                     {d.decisionBody}
                   </p>
                 </div>
@@ -193,7 +239,15 @@ export default function CaseStudyContent({ project }: Props) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-[11px] text-muted tracking-widest uppercase mb-1">
+    <p
+      style={{
+        fontFamily: "var(--font-dm-mono), monospace",
+        fontSize: "14px",
+        letterSpacing: "-0.09em",
+        color: "rgba(58,58,58,0.5)",
+        marginBottom: "4px",
+      }}
+    >
       {children}
     </p>
   );
@@ -203,8 +257,17 @@ function Section({ label, body }: { label: string; body: string }) {
   return (
     <section>
       <SectionLabel>{label}</SectionLabel>
-      <div className="h-px w-full bg-[rgba(10,10,10,0.08)] my-4" />
-      <p className="font-sans text-[15px] text-foreground leading-[1.8]">
+      <div style={{ height: "1px", background: "#E5E5E5", margin: "12px 0 16px" }} />
+      <p
+        style={{
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+          fontSize: "16px",
+          fontWeight: 500,
+          letterSpacing: "-0.05em",
+          color: "#3A3A3A",
+          lineHeight: 1.8,
+        }}
+      >
         {body}
       </p>
     </section>

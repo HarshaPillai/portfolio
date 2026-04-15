@@ -2,11 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --nav-height: 56px;
-  }
+/* ─── Custom font: PP Radio Grotesk Bold ─────────────────────────────────────
+   Place PPRadioGrotesk-Bold.otf in /public/fonts/ to activate.
+   Falls back to Impact if the file is not present.                           */
+@font-face {
+  font-family: "PP Radio Grotesk";
+  src: url("/fonts/PPRadioGrotesk-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
+:root {
+  --sidebar-width: 200px;
+}
+
+@layer base {
   *, *::before, *::after {
     box-sizing: border-box;
   }
@@ -16,73 +27,16 @@
   }
 
   body {
-    background-color: #F5F4F0;
-    color: #0A0A0A;
-    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    background-color: #FFFFFF;
+    color: #3A3A3A;
+    font-family: var(--font-jakarta), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
   }
 
   ::selection {
-    background: #1B3A5C;
-    color: #F5F4F0;
-  }
-}
-
-@layer components {
-  /* Project frame — starts blurred, unblurs on scroll */
-  .project-frame {
-    transition:
-      filter 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-      opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-      transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-
-  .project-frame .frame-thumbnail {
-    filter: blur(12px);
-    opacity: 0.55;
-    transform: translateY(6px) scale(1.04);
-    transition:
-      filter 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-      opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-      transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-
-  .project-frame .frame-meta {
-    opacity: 0;
-    transform: translateY(4px);
-    transition:
-      opacity 0.5s ease 0.2s,
-      transform 0.5s ease 0.2s;
-  }
-
-  .project-frame.in-view .frame-thumbnail {
-    filter: blur(0px);
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-
-  .project-frame.in-view .frame-meta {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* NDA frames: never unblur */
-  .project-frame.nda .frame-thumbnail {
-    filter: blur(14px) !important;
-    opacity: 0.5 !important;
-    transform: none !important;
-  }
-
-  .project-frame.nda .frame-meta {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-}
-
-@layer utilities {
-  .mono {
-    font-family: var(--font-geist-mono), monospace;
+    background: #F35900;
+    color: #FFFFFF;
   }
 }

@@ -1,45 +1,43 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
-import Nav from "@/components/Nav";
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-  display: "swap",
-});
-
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-  display: "swap",
-});
+import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
   title: "Harsha Pillai",
   description:
     "I design SaaS products that feel inevitable. I build with AI to get there faster.",
-  openGraph: {
-    title: "Harsha Pillai",
-    description:
-      "I design SaaS products that feel inevitable. I build with AI to get there faster.",
-    type: "website",
-  },
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
-    >
-      <body className="bg-background text-foreground antialiased">
-        <Nav />
-        <div style={{ paddingTop: "var(--nav-height)" }}>{children}</div>
+    <html lang="en">
+      <head>
+        {/* Plus Jakarta Sans + DM Mono — loaded at browser runtime */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500&family=DM+Mono:wght@400&display=swap"
+          rel="stylesheet"
+        />
+        <style>{`
+          :root {
+            --font-radio-grotesk: "PP Radio Grotesk";
+            --font-jakarta: "Plus Jakarta Sans";
+            --font-dm-mono: "DM Mono";
+          }
+        `}</style>
+      </head>
+      <body className="bg-background text-foreground">
+        <Sidebar />
+        <div style={{ marginLeft: "var(--sidebar-width)" }}>
+          {children}
+        </div>
       </body>
     </html>
   );
