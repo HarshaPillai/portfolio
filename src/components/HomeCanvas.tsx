@@ -31,22 +31,29 @@ const PROJECTS = [
     name: "Dream-Match",
     client: "SVA Thesis",
     year: "2025",
-    about:
-      "Reimagining career exploration for high schoolers through values-based matching",
+    about: "Reimagining career exploration for high schoolers through values-based matching",
     tags: ["#ACADEMIC", "#UX", "#RESEARCH"],
   },
 ];
 
-// ─── Orbit constants ──────────────────────────────────────────────────────────
-// Each thumbnail starts at one of 4 positions, 90° apart on the ellipse.
-// Screen-clockwise degrees: 0°=right, 90°=bottom, 180°=left(ACTIVE), 270°=top
-// Thumb 0 → active at t=0; thumb 1 → active at t=1; etc.
-const START_ANGLES = [180, 90, 0, 270];
-const ACTIVE_DEG = 180;
+// ─── Orbit geometry ───────────────────────────────────────────────────────────
+// Screen-clockwise convention: 0°=right 90°=bottom 180°=left(ACTIVE) 270°=top
+// Increasing angle = clockwise on screen.
+//
+// START_ANGLES: all 4 frames evenly distributed (90° apart), with the
+// nearest frame at 160° — 20° BEFORE the active position (180°) in the
+// clockwise direction. This ensures NO frame is dominant at scroll=0 and
+// the first frame reaches active after ~22vh (20/90 * 100vh).
+const START_ANGLES = [160, 250, 340, 70]; // [thumb0, thumb1, thumb2, thumb3]
+const ACTIVE_DEG   = 180;
+
+// Only grow a frame within the last GROW_DEG degrees of clockwise approach.
+// At scroll 0 the nearest frame is 20° away, so dist > GROW_DEG → always min size.
+const GROW_DEG = 15;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-const lerp  = (a: number, b: number, t: number) => a + (b - a) * clamp(t, 0, 1);
+const lerp  = (a: number, b: number, t: number)   => a + (b - a) * clamp(t, 0, 1);
 
 // ─── SVG icons ────────────────────────────────────────────────────────────────
 function MediumIcon() {
@@ -158,7 +165,7 @@ function NavArrow({
         zIndex: 22,
         transition: "opacity 0.12s",
       }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.72"; }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = ""; }}
     >
       {dir === "up" ? (
@@ -183,27 +190,25 @@ export default function HomeCanvas() {
   const arrowUpRef    = useRef<HTMLButtonElement>(null);
   const arrowDownRef  = useRef<HTMLButtonElement>(null);
   const stRef         = useRef<ScrollTrigger | null>(null);
-  const lastActiveRef = useRef<number>(0);
+  // Tracks which project is currently displayed (switches at integer t boundaries)
+  const lastProjRef   = useRef<number>(0);
 
   const [activeProject, setActiveProject] = useState(0);
+  const [arrows, setArrows]               = useState({ cx: 0, upY: 0, downY: 0 });
 
-  // Arrow positions computed once on mount (stored in state so JSX can use them)
-  const [arrows, setArrows] = useState({ cx: 0, upY: 0, downY: 0 });
-
-  // ── Scroll to project's active midpoint ────────────────────────────────────
+  // ── Scroll to midpoint of a project's active zone ─────────────────────────
   const scrollToProject = useCallback((idx: number) => {
     const st = stRef.current;
     if (!st) return;
-    const totalDist = st.end - st.start;
-    // Each project occupies 1/4 of the scroll; jump to the centre of its active zone (0.5)
-    const targetScroll = st.start + ((idx + 0.5) / 4) * totalDist;
+    // Each project occupies 1/4 of the 400vh scroll; land on its active midpoint
+    const targetScroll = st.start + ((idx + 0.5) / 4) * (st.end - st.start);
     window.scrollTo({ top: targetScroll, behavior: "smooth" });
   }, []);
 
-  const handleArrowUp   = useCallback(() => scrollToProject((lastActiveRef.current - 1 + 4) % 4), [scrollToProject]);
-  const handleArrowDown = useCallback(() => scrollToProject((lastActiveRef.current + 1) % 4),     [scrollToProject]);
+  const handleArrowUp   = useCallback(() => scrollToProject((lastProjRef.current - 1 + 4) % 4), [scrollToProject]);
+  const handleArrowDown = useCallback(() => scrollToProject((lastProjRef.current + 1) % 4),     [scrollToProject]);
 
-  // ── Main GSAP effect ───────────────────────────────────────────────────────
+  // ── Main GSAP / ScrollTrigger setup ───────────────────────────────────────
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
@@ -216,98 +221,116 @@ export default function HomeCanvas() {
     // Layout
     const metaW      = 300;
     const imgZoneW   = cW - metaW;
-    const imgCenterX = metaW + imgZoneW / 2; // horizontal centre of image zone
+    const imgCenterX = metaW + imgZoneW / 2;
 
-    // Ellipse semi-axes
-    const rx = clamp(Math.round(imgZoneW * 0.23), 140, 230);
-    const ry = clamp(Math.round(cH * 0.18),        100, 160);
-    // Orbit centre: positioned so the 180° point lands exactly at imgCenterX
-    const orbitCX = imgCenterX + rx;
+    // ── Ellipse ──────────────────────────────────────────────────────────────
+    // Wide orbit as specified: rx=380, ry=220.
+    // Orbit center placed so the 180° point (active) aligns with imgCenterX.
+    const rx = 380;
+    const ry = 220;
+    const orbitCX = imgCenterX + rx; // at 180°: x = orbitCX - rx = imgCenterX ✓
     const orbitCY = cH / 2;
 
-    // Active frame size (16:9, constrained to image zone)
-    const maxFW = Math.min(600, imgZoneW - 80);
-    const maxFH = Math.min(Math.round(maxFW * (9 / 16)), Math.round(cH * 0.65));
-    const frameW = Math.round(maxFH * (16 / 9));
+    // ── Active frame size: 16:9, max 400px tall, fits image zone ─────────────
+    const maxFH = Math.min(400, cH - 120); // leave 60px above/below for arrows + breathing room
+    const maxFW = imgZoneW - 80;           // 40px margin each side
     const frameH = maxFH;
+    const frameW = Math.min(Math.round(frameH * (16 / 9)), maxFW);
+    // If width is constrained, recalculate height to keep 16:9
+    const finalFrameH = frameW < Math.round(maxFH * (16 / 9))
+      ? Math.round(frameW * (9 / 16))
+      : frameH;
+    const finalFrameW = frameW;
 
-    // Small (non-active) thumbnail size
+    // Small (non-active) thumbnail
     const thumbW = 158;
     const thumbH = 106;
 
-    // Store arrow positions (computed here, used in JSX)
+    // Arrow positions: centred with active frame, above and below
     setArrows({
-      cx:    imgCenterX - 22,
-      upY:   orbitCY - frameH / 2 - 60,
-      downY: orbitCY + frameH / 2 + 16,
+      cx:    imgCenterX - 22,                    // horizontally centred with active frame, offset by half button width
+      upY:   orbitCY - finalFrameH / 2 - 58,     // above active frame with gap
+      downY: orbitCY + finalFrameH / 2 + 14,     // below active frame with gap
     });
 
     // ── Orbital update ───────────────────────────────────────────────────────
-    // t: 0→4, each unit = 90° clockwise rotation = 1 project cycle (100vh)
+    // t: 0 → 4 (each unit = 100vh of scroll = one project cycle = 90° of rotation)
     const updateOrbit = (t: number) => {
-      const rotDeg = t * 90;
-
-      let minDist    = 180;
-      let closestIdx = 0;
+      const rotDeg = t * 90; // total CW rotation
 
       PROJECTS.forEach((_, i) => {
         const frame = frameRefs.current[i];
         if (!frame) return;
 
-        // Current angle on the orbit (screen-clockwise degrees)
+        // Current position on ellipse (screen-CW, increasing angle)
         const angle    = START_ANGLES[i] + rotDeg;
         const angleRad = (angle * Math.PI) / 180;
         const ex = orbitCX + rx * Math.cos(angleRad);
         const ey = orbitCY + ry * Math.sin(angleRad);
 
-        // Angular distance from the active position (0–180°)
+        // Angular distance from the active position (0°–180°, unsigned)
         let dist = ((angle - ACTIVE_DEG) % 360 + 360) % 360;
         if (dist > 180) dist = 360 - dist;
-        if (dist < minDist) { minDist = dist; closestIdx = i; }
 
-        const dn        = dist / 180;           // 0=active, 1=furthest
-        const sizeCurve = Math.pow(dn, 0.38);  // faster decay → clear active vs. non-active
+        // Size/blur/opacity only transitions within the last GROW_DEG of approach.
+        // At scroll=0 nearest frame is 20° away (> GROW_DEG=15), so sizeT=0 for all.
+        const sizeT = clamp(1 - dist / GROW_DEG, 0, 1);
+        const ease  = Math.pow(sizeT, 0.4); // smooth easing
 
-        const w    = lerp(frameW, thumbW, sizeCurve);
-        const h    = lerp(frameH, thumbH, sizeCurve);
-        const blur = lerp(0, 8, dn);
-        const op   = lerp(1, 0.45, Math.pow(dn, 0.55));
-        const z    = Math.round(lerp(10, 1, dn));
+        const w    = lerp(thumbW, finalFrameW, ease);
+        const h    = lerp(thumbH, finalFrameH, ease);
+        const blur = lerp(8, 0, ease);
+        const op   = lerp(0.45, 1, ease);
+        const z    = Math.round(lerp(1, 10, ease));
 
-        // GSAP controls all visual properties; React never sets these via style prop
         gsap.set(frame, {
-          left: ex - w / 2,
-          top:  ey - h / 2,
-          width: w,
-          height: h,
+          left:    ex - w / 2,
+          top:     ey - h / 2,
+          width:   w,
+          height:  h,
           filter:  `blur(${blur}px)`,
           opacity: op,
           zIndex:  z,
         });
       });
 
-      // Update React state only when the active project changes (rare → no jank)
-      if (closestIdx !== lastActiveRef.current) {
-        lastActiveRef.current = closestIdx;
-        setActiveProject(closestIdx);
+      // ── Active project (switches at integer t boundaries) ──────────────────
+      // At those boundaries meta is invisible (frac ≈ 0), so the snap is hidden.
+      const projIdx = Math.floor(t) % 4;
+      if (projIdx !== lastProjRef.current) {
+        lastProjRef.current = projIdx;
+        setActiveProject(projIdx);
       }
 
-      // ── UI overlay opacity ────────────────────────────────────────────────
-      // Within each project cycle (frac 0→1):
-      //   0.00–0.25  approaching   — thumbnails rotate in, text fades out
-      //   0.25–0.40  fade-in       — metadata panel fades in
-      //   0.40–0.60  locked active — full meta, arrows visible
-      //   0.60–0.75  fade-out      — metadata panel fades out
-      //   0.75–1.00  departing     — thumbnails rotate out, text fades back
+      // ── Text / metadata timing (mutually exclusive) ───────────────────────
+      // Per-project cycle (frac 0→1 = one 100vh window):
+      //   0.00–0.15  text=1, meta=0         (scatter, no active frame)
+      //   0.15–0.25  text fades 1→0         (frame approaching)
+      //   0.25–0.35  meta fades 0→1         (frame arriving, text=0)
+      //   0.35–0.65  text=0, meta=1         (frame fully active)
+      //   0.65–0.75  meta fades 1→0         (frame departing)
+      //   0.75–0.85  text fades 0→1         (frame leaving)
+      //   0.85–1.00  text=1, meta=0         (between projects)
       const frac = t % 1;
-      let metaOp = 0;
-      if      (frac >= 0.40 && frac <= 0.60) { metaOp = 1; }
-      else if (frac > 0.25 && frac < 0.40)   { metaOp = (frac - 0.25) / 0.15; }
-      else if (frac > 0.60 && frac < 0.75)   { metaOp = 1 - (frac - 0.60) / 0.15; }
 
-      const textOp = clamp(1 - metaOp * 3, 0, 1);
+      let textOp = 1, metaOp = 0;
 
-      // Direct GSAP.set on refs — avoids React/GSAP style conflict
+      if (frac >= 0.15 && frac < 0.25) {
+        textOp = 1 - (frac - 0.15) / 0.10; // text fades out
+      } else if (frac >= 0.25 && frac < 0.85) {
+        textOp = 0; // text hidden during active window
+      } else if (frac >= 0.85) {
+        textOp = (frac - 0.85) / 0.15; // text fades in
+      }
+
+      if (frac >= 0.25 && frac < 0.35) {
+        metaOp = (frac - 0.25) / 0.10; // meta fades in
+      } else if (frac >= 0.35 && frac < 0.65) {
+        metaOp = 1; // meta fully visible
+      } else if (frac >= 0.65 && frac < 0.75) {
+        metaOp = 1 - (frac - 0.65) / 0.10; // meta fades out
+      }
+
       if (metaPanelRef.current) gsap.set(metaPanelRef.current, { opacity: metaOp });
       if (posTextRef.current)   gsap.set(posTextRef.current,   { opacity: textOp });
       if (arrowUpRef.current) {
@@ -320,7 +343,7 @@ export default function HomeCanvas() {
       }
     };
 
-    // Initial state (t = 0)
+    // Initial render: t=0 → text=1, meta=0, all frames at min size
     updateOrbit(0);
 
     // ── ScrollTrigger ─────────────────────────────────────────────────────────
@@ -328,10 +351,10 @@ export default function HomeCanvas() {
       stRef.current = ScrollTrigger.create({
         trigger:    canvas,
         start:      "top top",
-        end:        "+=400vh",  // 4 projects × 100vh each
+        end:        "+=400vh",
         pin:        true,
         pinSpacing: true,
-        scrub:      true,       // animation tied exactly to scroll position
+        scrub:      true,
         onUpdate: (self) => updateOrbit(self.progress * 4),
       });
     });
@@ -349,7 +372,7 @@ export default function HomeCanvas() {
       ref={canvasRef}
       style={{ position: "relative", height: "100vh", overflow: "hidden" }}
     >
-      {/* ── Social icons ── top right, always above everything ─────────────── */}
+      {/* ── Social icons ─────────────────────────────────────────────────────── */}
       <div
         style={{
           position: "absolute", top: 28, right: 32, zIndex: 30,
@@ -361,13 +384,13 @@ export default function HomeCanvas() {
         <a href="https://github.com/harshapillai"      target="_blank" rel="noopener noreferrer" aria-label="GitHub">  <GitHubIcon />   </a>
       </div>
 
-      {/* ── Positioning text ── centred in the image zone ────────────────────
-          No opacity in style — GSAP controls it freely via posTextRef         */}
+      {/* ── Positioning text ─────────────────────────────────────────────────
+          Centred in the image zone (right of the 300px metadata panel).
+          No opacity in React style — GSAP controls it freely via posTextRef. */}
       <div
         ref={posTextRef}
         style={{
           position: "absolute",
-          // Centre in the image zone (right of 300px metadata)
           left: "calc((100% + 300px) / 2)",
           top:  "50%",
           transform: "translate(-50%, -50%)",
@@ -396,8 +419,8 @@ export default function HomeCanvas() {
         </p>
       </div>
 
-      {/* ── Metadata panel ── left 300px, GSAP controls opacity via ref ──────
-          .g0 sets initial opacity:0 without going through React style prop    */}
+      {/* ── Metadata panel ───────────────────────────────────────────────────
+          .g0 = opacity:0 pointer-events:none via CSS; GSAP animates opacity. */}
       <div
         ref={metaPanelRef}
         className="g0"
@@ -439,7 +462,8 @@ export default function HomeCanvas() {
         </MetaRow>
       </div>
 
-      {/* ── Orbital frame divs ── one per project, GSAP owns all visual props  */}
+      {/* ── Orbital frame divs ── GSAP owns all visual props ─────────────────
+          React style: only position + background; no size, opacity, filter.  */}
       {PROJECTS.map((_, i) => (
         <div
           key={i}
@@ -448,23 +472,11 @@ export default function HomeCanvas() {
         />
       ))}
 
-      {/* ── Nav arrows ── appear during the active phase of each project ──── */}
+      {/* ── Nav arrows ── rendered once arrows are computed ──────────────────── */}
       {arrows.cx > 0 && (
         <>
-          <NavArrow
-            dir="up"
-            btnRef={arrowUpRef}
-            onClick={handleArrowUp}
-            left={arrows.cx}
-            top={arrows.upY}
-          />
-          <NavArrow
-            dir="down"
-            btnRef={arrowDownRef}
-            onClick={handleArrowDown}
-            left={arrows.cx}
-            top={arrows.downY}
-          />
+          <NavArrow dir="up"   btnRef={arrowUpRef}   onClick={handleArrowUp}   left={arrows.cx} top={arrows.upY}   />
+          <NavArrow dir="down" btnRef={arrowDownRef} onClick={handleArrowDown} left={arrows.cx} top={arrows.downY} />
         </>
       )}
 
