@@ -19,22 +19,22 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 h-full bg-white z-50 flex flex-col"
+      className="fixed left-0 top-0 h-full z-50"
       style={{ width: "var(--sidebar-width)" }}
     >
-      {/* Wordmark */}
-      <div className="px-6 pt-8 pb-6">
-        <Link href="/">
+      {/* Wordmark — floats top-left, lots of open space below */}
+      <div style={{ position: "absolute", top: 32, left: 32 }}>
+        <Link href="/" style={{ textDecoration: "none" }}>
           <span
-            className="block leading-none"
             style={{
               fontFamily: "var(--font-radio-grotesk), Impact, sans-serif",
-              fontSize: "22px",
+              fontSize: "28px",
               fontWeight: 700,
               color: "#F35900",
               letterSpacing: 0,
               lineHeight: 1,
               whiteSpace: "nowrap",
+              display: "block",
             }}
           >
             Harsha Pillai
@@ -42,8 +42,17 @@ export default function Sidebar() {
         </Link>
       </div>
 
-      {/* Nav */}
-      <nav className="flex flex-col px-6 gap-1 mt-2">
+      {/* Nav — floats lower-left, not directly below wordmark */}
+      <nav
+        style={{
+          position: "absolute",
+          bottom: 180,
+          left: 32,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
         {navLinks.map(({ href, label }) => {
           const active = isActive(href);
           return (
