@@ -17,6 +17,9 @@
   --sidebar-width: 200px;
 }
 
+/* ─── Helper: start at opacity-0 without React style interference ─────────── */
+.g0 { opacity: 0; pointer-events: none; }
+
 /* ─── Scroll indicator bounce ──────────────────────────────────────────────── */
 @keyframes scrollBounce {
   0%, 100% { transform: translateY(0); }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 // ─── Project data ─────────────────────────────────────────────────────────────
 const PROJECTS = [
@@ -30,64 +31,24 @@ const PROJECTS = [
     name: "Dream-Match",
     client: "SVA Thesis",
     year: "2025",
-    about: "Reimagining career exploration for high schoolers through values-based matching",
+    about:
+      "Reimagining career exploration for high schoolers through values-based matching",
     tags: ["#ACADEMIC", "#UX", "#RESEARCH"],
   },
 ];
 
-// ─── Slot / scatter config type ───────────────────────────────────────────────
-type SlotConfig = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  blur: number;
-  opacity: number;
-  zIndex: number;
-};
+// ─── Orbit constants ──────────────────────────────────────────────────────────
+// Each thumbnail starts at one of 4 positions, 90° apart on the ellipse.
+// Screen-clockwise degrees: 0°=right, 90°=bottom, 180°=left(ACTIVE), 270°=top
+// Thumb 0 → active at t=0; thumb 1 → active at t=1; etc.
+const START_ANGLES = [180, 90, 0, 270];
+const ACTIVE_DEG = 180;
 
-// Initial scatter: 4 small blurred frames spread across the canvas
-function computeScatter(cW: number, cH: number): SlotConfig[] {
-  return [
-    { left: cW * 0.27, top: cH * 0.12, width: 162, height: 122, blur: 4, opacity: 0.72, zIndex: 5 },
-    { left: cW * 0.53, top: cH * 0.07, width: 140, height: 105, blur: 6, opacity: 0.65, zIndex: 4 },
-    { left: cW * 0.15, top: cH * 0.40, width: 168, height: 126, blur: 4, opacity: 0.70, zIndex: 5 },
-    { left: cW * 0.63, top: cH * 0.34, width: 132, height: 99,  blur: 5, opacity: 0.60, zIndex: 4 },
-  ];
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const lerp  = (a: number, b: number, t: number) => a + (b - a) * clamp(t, 0, 1);
 
-// Orbital slots: slot 0 = active (16:9, centred in image area), slots 1–3 = scattered
-// Blur tied to orbital distance from active: 0 → 4 → 8 → 4 (clockwise)
-function computeSlots(cW: number, cH: number): SlotConfig[] {
-  const metaW = 300;
-  const imgL = metaW;
-  const imgW = cW - metaW;
-
-  // Active frame: 16:9, max 420px tall, centred in image area
-  const maxH = Math.min(420, Math.round(cH * 0.65));
-  const maxW = imgW - 80; // 40px margin each side
-  let imgH = maxH;
-  let imgFrameW = Math.round(imgH * (16 / 9));
-  if (imgFrameW > maxW) {
-    imgFrameW = maxW;
-    imgH = Math.round(imgFrameW * (9 / 16));
-  }
-  const imgLeft = imgL + Math.round((imgW - imgFrameW) / 2);
-  const imgTop  = Math.round((cH - imgH) / 2);
-
-  return [
-    // Slot 0: active — 16:9, centred, no blur
-    { left: imgLeft, top: imgTop, width: imgFrameW, height: imgH, blur: 0, opacity: 1, zIndex: 10 },
-    // Slot 1: upper-left of image area — low blur (just left active)
-    { left: imgL + imgW * 0.06, top: cH * 0.08, width: 155, height: 116, blur: 4, opacity: 0.90, zIndex: 6 },
-    // Slot 2: upper-right — furthest, most blurred
-    { left: imgL + imgW * 0.65, top: cH * 0.08, width: 125, height: 94,  blur: 8, opacity: 0.50, zIndex: 3 },
-    // Slot 3: lower centre — approaching active, low blur
-    { left: imgL + imgW * 0.30, top: cH * 0.73, width: 148, height: 111, blur: 4, opacity: 0.85, zIndex: 6 },
-  ];
-}
-
-// ─── SVG social icons ─────────────────────────────────────────────────────────
+// ─── SVG icons ────────────────────────────────────────────────────────────────
 function MediumIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -97,7 +58,6 @@ function MediumIcon() {
     </svg>
   );
 }
-
 function LinkedInIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -108,13 +68,11 @@ function LinkedInIcon() {
     </svg>
   );
 }
-
 function GitHubIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <path
-        fillRule="evenodd"
-        clipRule="evenodd"
+        fillRule="evenodd" clipRule="evenodd"
         d="M10 1.5a8.5 8.5 0 00-2.688 16.573c.425.078.58-.184.58-.41v-1.437c-2.362.513-2.861-1.138-2.861-1.138-.386-.98-.943-1.241-.943-1.241-.771-.527.058-.516.058-.516.853.06 1.302.876 1.302.876.758 1.299 1.989.924 2.474.707.077-.549.297-.924.54-1.136-1.886-.214-3.868-.943-3.868-4.196 0-.927.331-1.684.875-2.277-.088-.215-.379-1.078.083-2.246 0 0 .713-.228 2.335.87a8.12 8.12 0 012.124-.286c.72.004 1.445.097 2.124.286 1.622-1.098 2.334-.87 2.334-.87.463 1.168.172 2.031.084 2.246.545.593.874 1.35.874 2.277 0 3.261-1.985 3.98-3.876 4.19.305.263.576.78.576 1.572v2.328c0 .228.153.492.584.409A8.502 8.502 0 0010 1.5z"
         fill="#B5B5B5"
       />
@@ -122,22 +80,72 @@ function GitHubIcon() {
   );
 }
 
-// ─── NavArrowButton ───────────────────────────────────────────────────────────
-function NavArrowButton({
-  direction,
-  style,
+// ─── MetaRow ──────────────────────────────────────────────────────────────────
+function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        paddingBottom: "14px",
+        marginBottom: "14px",
+        borderBottom: "1px solid #E5E5E5",
+        display: "grid",
+        gridTemplateColumns: "56px 1fr",
+        gap: "0 10px",
+        alignItems: "start",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-dm-mono), monospace",
+          fontSize: "12px",
+          letterSpacing: "-0.09em",
+          color: "rgba(58,58,58,0.5)",
+          paddingTop: "4px",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+          fontSize: "15px",
+          fontWeight: 500,
+          letterSpacing: "-0.05em",
+          color: "#3A3A3A",
+          lineHeight: 1.45,
+        }}
+      >
+        {children}
+      </span>
+    </div>
+  );
+}
+
+// ─── NavArrow ─────────────────────────────────────────────────────────────────
+function NavArrow({
+  dir,
+  btnRef,
   onClick,
+  top,
+  left,
 }: {
-  direction: "up" | "down";
-  style: React.CSSProperties;
+  dir: "up" | "down";
+  btnRef: React.RefObject<HTMLButtonElement | null>;
   onClick: () => void;
+  top: number;
+  left: number;
 }) {
   return (
     <button
+      ref={btnRef}
       onClick={onClick}
-      aria-label={direction === "up" ? "Previous project" : "Next project"}
+      aria-label={dir === "up" ? "Previous project" : "Next project"}
+      className="g0"
       style={{
         position: "absolute",
+        left,
+        top,
         width: 44,
         height: 44,
         borderRadius: "50%",
@@ -147,14 +155,13 @@ function NavArrowButton({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 25,
-        transition: "opacity 0.15s",
-        ...style,
+        zIndex: 22,
+        transition: "opacity 0.12s",
       }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.72"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = ""; }}
     >
-      {direction === "up" ? (
+      {dir === "up" ? (
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M7 11V3M3 6.5l4-4 4 4" stroke="white" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -167,214 +174,213 @@ function NavArrowButton({
   );
 }
 
-// ─── MetaRow ─────────────────────────────────────────────────────────────────
-function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        paddingBottom: "12px",
-        marginBottom: "12px",
-        borderBottom: "1px solid #E5E5E5",
-        display: "grid",
-        gridTemplateColumns: "52px 1fr",
-        gap: "0 10px",
-        alignItems: "start",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-dm-mono), monospace",
-          fontSize: "11px",
-          letterSpacing: "-0.06em",
-          color: "rgba(58,58,58,0.45)",
-          paddingTop: "3px",
-          textTransform: "uppercase",
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-          fontSize: "14px",
-          fontWeight: 500,
-          letterSpacing: "-0.04em",
-          color: "#3A3A3A",
-          lineHeight: 1.45,
-        }}
-      >
-        {children}
-      </span>
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function HomeCanvas() {
-  const canvasRef   = useRef<HTMLDivElement>(null);
-  const frameRefs   = useRef<(HTMLDivElement | null)[]>([]);
-  // slotRef[slotIdx] = projectIdx
-  const slotRef     = useRef<number[]>([0, 1, 2, 3]);
-  const animRef     = useRef(false);
-  const modeRef     = useRef<"scatter" | "orbital">("scatter");
+  const canvasRef     = useRef<HTMLDivElement>(null);
+  const frameRefs     = useRef<(HTMLDivElement | null)[]>([]);
+  const metaPanelRef  = useRef<HTMLDivElement>(null);
+  const posTextRef    = useRef<HTMLDivElement>(null);
+  const arrowUpRef    = useRef<HTMLButtonElement>(null);
+  const arrowDownRef  = useRef<HTMLButtonElement>(null);
+  const stRef         = useRef<ScrollTrigger | null>(null);
+  const lastActiveRef = useRef<number>(0);
 
-  const [mode,         setMode]         = useState<"scatter" | "orbital">("scatter");
-  const [activeProjIdx, setActiveProjIdx] = useState(0);
-  // canvasSize is set once on mount (used for nav-arrow positioning in the render)
-  const [canvasSize, setCanvasSize]     = useState({ w: 0, h: 0 });
-  // CSS-transition-driven opacity for React-owned UI elements
-  const [textOpacity, setTextOpacity]   = useState(1);
-  const [metaOpacity, setMetaOpacity]   = useState(0);
+  const [activeProject, setActiveProject] = useState(0);
 
-  // ── Cycle project (called by nav arrow buttons) ───────────────────────────
-  const cycleProject = useCallback((dir: 1 | -1) => {
-    if (animRef.current || modeRef.current !== "orbital") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    animRef.current = true;
+  // Arrow positions computed once on mount (stored in state so JSX can use them)
+  const [arrows, setArrows] = useState({ cx: 0, upY: 0, downY: 0 });
 
-    const old  = slotRef.current;
-    // dir = -1 → clockwise (prev), dir = 1 → counter-clockwise (next)
-    const next = dir === -1
-      ? [old[3], old[0], old[1], old[2]]
-      : [old[1], old[2], old[3], old[0]];
-    slotRef.current = next;
-    setActiveProjIdx(next[0]);
-
-    const s  = computeSlots(canvas.offsetWidth, canvas.offsetHeight);
-    const tl = gsap.timeline({ onComplete: () => { animRef.current = false; } });
-    frameRefs.current.forEach((frame, projIdx) => {
-      if (!frame) return;
-      const slot = s[next.indexOf(projIdx)];
-      tl.to(frame, {
-        left: slot.left, top: slot.top, width: slot.width, height: slot.height,
-        filter: `blur(${slot.blur}px)`, opacity: slot.opacity, zIndex: slot.zIndex,
-        duration: 0.65, ease: "power2.inOut",
-      }, 0);
-    });
-  }, []); // all deps are stable refs / module-level fns
-
-  // ── Main effect: init positions + wheel handler ───────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    // Measure canvas and store for nav-arrow positioning
-    setCanvasSize({ w: canvas.offsetWidth, h: canvas.offsetHeight });
-
-    // Set initial scatter positions via GSAP (frames have no size yet, so no flash)
-    const scatter = computeScatter(canvas.offsetWidth, canvas.offsetHeight);
-    frameRefs.current.forEach((frame, i) => {
-      if (!frame) return;
-      const s = scatter[i];
-      gsap.set(frame, {
-        left: s.left, top: s.top, width: s.width, height: s.height,
-        filter: `blur(${s.blur}px)`, opacity: s.opacity, zIndex: s.zIndex,
-      });
-    });
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (animRef.current) return;
-
-      // ── Scatter → orbital on first scroll-up ─────────────────────────────
-      if (modeRef.current === "scatter") {
-        if (e.deltaY >= 0) return; // ignore scroll-down in scatter mode
-        animRef.current  = true;
-        modeRef.current  = "orbital";
-        slotRef.current  = [0, 1, 2, 3];
-
-        // React state — triggers CSS transitions on meta panel & positioning text
-        setMode("orbital");
-        setTextOpacity(0);
-        setMetaOpacity(1);
-        setActiveProjIdx(0);
-
-        const slots = computeSlots(canvas.offsetWidth, canvas.offsetHeight);
-        const tl = gsap.timeline({ onComplete: () => { animRef.current = false; } });
-        frameRefs.current.forEach((frame, i) => {
-          if (!frame) return;
-          const slot = slots[i]; // project i starts in slot i
-          tl.to(frame, {
-            left: slot.left, top: slot.top, width: slot.width, height: slot.height,
-            filter: `blur(${slot.blur}px)`, opacity: slot.opacity, zIndex: slot.zIndex,
-            duration: 0.8, ease: "power2.inOut",
-          }, 0);
-        });
-        return;
-      }
-
-      // ── Orbital: rotate on every wheel event ─────────────────────────────
-      animRef.current = true;
-      const old  = slotRef.current;
-      // scroll-up → clockwise (slot3 → slot0)
-      // scroll-down → counter-clockwise (slot1 → slot0)
-      const next = e.deltaY < 0
-        ? [old[3], old[0], old[1], old[2]]
-        : [old[1], old[2], old[3], old[0]];
-      slotRef.current = next;
-      setActiveProjIdx(next[0]);
-
-      const s  = computeSlots(canvas.offsetWidth, canvas.offsetHeight);
-      const tl = gsap.timeline({ onComplete: () => { animRef.current = false; } });
-      frameRefs.current.forEach((frame, projIdx) => {
-        if (!frame) return;
-        const slot = s[next.indexOf(projIdx)];
-        tl.to(frame, {
-          left: slot.left, top: slot.top, width: slot.width, height: slot.height,
-          filter: `blur(${slot.blur}px)`, opacity: slot.opacity, zIndex: slot.zIndex,
-          duration: 0.65, ease: "power2.inOut",
-        }, 0);
-      });
-    };
-
-    canvas.addEventListener("wheel", onWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", onWheel);
+  // ── Scroll to project's active midpoint ────────────────────────────────────
+  const scrollToProject = useCallback((idx: number) => {
+    const st = stRef.current;
+    if (!st) return;
+    const totalDist = st.end - st.start;
+    // Each project occupies 1/4 of the scroll; jump to the centre of its active zone (0.5)
+    const targetScroll = st.start + ((idx + 0.5) / 4) * totalDist;
+    window.scrollTo({ top: targetScroll, behavior: "smooth" });
   }, []);
 
-  const proj = PROJECTS[activeProjIdx];
+  const handleArrowUp   = useCallback(() => scrollToProject((lastActiveRef.current - 1 + 4) % 4), [scrollToProject]);
+  const handleArrowDown = useCallback(() => scrollToProject((lastActiveRef.current + 1) % 4),     [scrollToProject]);
 
-  // Compute slot 0 position for nav-arrow placement (render-time, using stored canvasSize)
-  const slot0 = mode === "orbital" && canvasSize.w > 0
-    ? computeSlots(canvasSize.w, canvasSize.h)[0]
-    : null;
+  // ── Main GSAP effect ───────────────────────────────────────────────────────
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const cW = canvas.offsetWidth;
+    const cH = canvas.offsetHeight;
+
+    // Layout
+    const metaW      = 300;
+    const imgZoneW   = cW - metaW;
+    const imgCenterX = metaW + imgZoneW / 2; // horizontal centre of image zone
+
+    // Ellipse semi-axes
+    const rx = clamp(Math.round(imgZoneW * 0.23), 140, 230);
+    const ry = clamp(Math.round(cH * 0.18),        100, 160);
+    // Orbit centre: positioned so the 180° point lands exactly at imgCenterX
+    const orbitCX = imgCenterX + rx;
+    const orbitCY = cH / 2;
+
+    // Active frame size (16:9, constrained to image zone)
+    const maxFW = Math.min(600, imgZoneW - 80);
+    const maxFH = Math.min(Math.round(maxFW * (9 / 16)), Math.round(cH * 0.65));
+    const frameW = Math.round(maxFH * (16 / 9));
+    const frameH = maxFH;
+
+    // Small (non-active) thumbnail size
+    const thumbW = 158;
+    const thumbH = 106;
+
+    // Store arrow positions (computed here, used in JSX)
+    setArrows({
+      cx:    imgCenterX - 22,
+      upY:   orbitCY - frameH / 2 - 60,
+      downY: orbitCY + frameH / 2 + 16,
+    });
+
+    // ── Orbital update ───────────────────────────────────────────────────────
+    // t: 0→4, each unit = 90° clockwise rotation = 1 project cycle (100vh)
+    const updateOrbit = (t: number) => {
+      const rotDeg = t * 90;
+
+      let minDist    = 180;
+      let closestIdx = 0;
+
+      PROJECTS.forEach((_, i) => {
+        const frame = frameRefs.current[i];
+        if (!frame) return;
+
+        // Current angle on the orbit (screen-clockwise degrees)
+        const angle    = START_ANGLES[i] + rotDeg;
+        const angleRad = (angle * Math.PI) / 180;
+        const ex = orbitCX + rx * Math.cos(angleRad);
+        const ey = orbitCY + ry * Math.sin(angleRad);
+
+        // Angular distance from the active position (0–180°)
+        let dist = ((angle - ACTIVE_DEG) % 360 + 360) % 360;
+        if (dist > 180) dist = 360 - dist;
+        if (dist < minDist) { minDist = dist; closestIdx = i; }
+
+        const dn        = dist / 180;           // 0=active, 1=furthest
+        const sizeCurve = Math.pow(dn, 0.38);  // faster decay → clear active vs. non-active
+
+        const w    = lerp(frameW, thumbW, sizeCurve);
+        const h    = lerp(frameH, thumbH, sizeCurve);
+        const blur = lerp(0, 8, dn);
+        const op   = lerp(1, 0.45, Math.pow(dn, 0.55));
+        const z    = Math.round(lerp(10, 1, dn));
+
+        // GSAP controls all visual properties; React never sets these via style prop
+        gsap.set(frame, {
+          left: ex - w / 2,
+          top:  ey - h / 2,
+          width: w,
+          height: h,
+          filter:  `blur(${blur}px)`,
+          opacity: op,
+          zIndex:  z,
+        });
+      });
+
+      // Update React state only when the active project changes (rare → no jank)
+      if (closestIdx !== lastActiveRef.current) {
+        lastActiveRef.current = closestIdx;
+        setActiveProject(closestIdx);
+      }
+
+      // ── UI overlay opacity ────────────────────────────────────────────────
+      // Within each project cycle (frac 0→1):
+      //   0.00–0.25  approaching   — thumbnails rotate in, text fades out
+      //   0.25–0.40  fade-in       — metadata panel fades in
+      //   0.40–0.60  locked active — full meta, arrows visible
+      //   0.60–0.75  fade-out      — metadata panel fades out
+      //   0.75–1.00  departing     — thumbnails rotate out, text fades back
+      const frac = t % 1;
+      let metaOp = 0;
+      if      (frac >= 0.40 && frac <= 0.60) { metaOp = 1; }
+      else if (frac > 0.25 && frac < 0.40)   { metaOp = (frac - 0.25) / 0.15; }
+      else if (frac > 0.60 && frac < 0.75)   { metaOp = 1 - (frac - 0.60) / 0.15; }
+
+      const textOp = clamp(1 - metaOp * 3, 0, 1);
+
+      // Direct GSAP.set on refs — avoids React/GSAP style conflict
+      if (metaPanelRef.current) gsap.set(metaPanelRef.current, { opacity: metaOp });
+      if (posTextRef.current)   gsap.set(posTextRef.current,   { opacity: textOp });
+      if (arrowUpRef.current) {
+        gsap.set(arrowUpRef.current, { opacity: metaOp });
+        arrowUpRef.current.style.pointerEvents = metaOp > 0.3 ? "auto" : "none";
+      }
+      if (arrowDownRef.current) {
+        gsap.set(arrowDownRef.current, { opacity: metaOp });
+        arrowDownRef.current.style.pointerEvents = metaOp > 0.3 ? "auto" : "none";
+      }
+    };
+
+    // Initial state (t = 0)
+    updateOrbit(0);
+
+    // ── ScrollTrigger ─────────────────────────────────────────────────────────
+    const ctx = gsap.context(() => {
+      stRef.current = ScrollTrigger.create({
+        trigger:    canvas,
+        start:      "top top",
+        end:        "+=400vh",  // 4 projects × 100vh each
+        pin:        true,
+        pinSpacing: true,
+        scrub:      true,       // animation tied exactly to scroll position
+        onUpdate: (self) => updateOrbit(self.progress * 4),
+      });
+    });
+
+    return () => {
+      ctx.revert();
+      stRef.current = null;
+    };
+  }, []);
+
+  const proj = PROJECTS[activeProject];
 
   return (
     <div
       ref={canvasRef}
-      style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden" }}
+      style={{ position: "relative", height: "100vh", overflow: "hidden" }}
     >
-      {/* ── Social icons — always on top right ─────────────────────────────── */}
+      {/* ── Social icons ── top right, always above everything ─────────────── */}
       <div
         style={{
           position: "absolute", top: 28, right: 32, zIndex: 30,
           display: "flex", gap: 16, alignItems: "center",
         }}
       >
-        <a href="https://medium.com/@harshapillai"   target="_blank" rel="noopener noreferrer" aria-label="Medium">   <MediumIcon />   </a>
+        <a href="https://medium.com/@harshapillai"    target="_blank" rel="noopener noreferrer" aria-label="Medium">   <MediumIcon />   </a>
         <a href="https://linkedin.com/in/harshapillai" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><LinkedInIcon /></a>
-        <a href="https://github.com/harshapillai"     target="_blank" rel="noopener noreferrer" aria-label="GitHub">  <GitHubIcon />   </a>
+        <a href="https://github.com/harshapillai"      target="_blank" rel="noopener noreferrer" aria-label="GitHub">  <GitHubIcon />   </a>
       </div>
 
-      {/* ── Positioning text — visible in scatter, fades out on first scroll ─ */}
+      {/* ── Positioning text ── centred in the image zone ────────────────────
+          No opacity in style — GSAP controls it freely via posTextRef         */}
       <div
+        ref={posTextRef}
         style={{
           position: "absolute",
-          left: "50%",
-          top: "50%",
+          // Centre in the image zone (right of 300px metadata)
+          left: "calc((100% + 300px) / 2)",
+          top:  "50%",
           transform: "translate(-50%, -50%)",
           textAlign: "center",
-          maxWidth: "360px",
+          maxWidth: 360,
           zIndex: 15,
           pointerEvents: "none",
-          opacity: textOpacity,
-          transition: "opacity 0.35s ease",
         }}
       >
         <p
           style={{
             fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: "22px",
+            fontSize: 22,
             fontWeight: 500,
             letterSpacing: "-0.05em",
             color: "#3A3A3A",
@@ -390,8 +396,11 @@ export default function HomeCanvas() {
         </p>
       </div>
 
-      {/* ── Metadata panel — fades in after first scroll-up ─────────────────── */}
+      {/* ── Metadata panel ── left 300px, GSAP controls opacity via ref ──────
+          .g0 sets initial opacity:0 without going through React style prop    */}
       <div
+        ref={metaPanelRef}
+        className="g0"
         style={{
           position: "absolute",
           left: 0, top: 0,
@@ -402,9 +411,6 @@ export default function HomeCanvas() {
           padding: "64px 24px 48px",
           boxSizing: "border-box",
           overflow: "hidden",
-          opacity: metaOpacity,
-          transition: "opacity 0.45s ease 0.25s",
-          pointerEvents: mode === "orbital" ? "auto" : "none",
         }}
       >
         <MetaRow label="Project">
@@ -422,7 +428,7 @@ export default function HomeCanvas() {
                 style={{
                   color: "#B5B5B5",
                   fontFamily: "var(--font-dm-mono), monospace",
-                  fontSize: "11px",
+                  fontSize: 11,
                   letterSpacing: "-0.06em",
                 }}
               >
@@ -433,8 +439,7 @@ export default function HomeCanvas() {
         </MetaRow>
       </div>
 
-      {/* ── Frame divs — one per project, GSAP controls all visual properties ─ */}
-      {/* Note: no opacity/size in React style → GSAP can freely animate them  */}
+      {/* ── Orbital frame divs ── one per project, GSAP owns all visual props  */}
       {PROJECTS.map((_, i) => (
         <div
           key={i}
@@ -443,29 +448,27 @@ export default function HomeCanvas() {
         />
       ))}
 
-      {/* ── Nav arrows — appear once in orbital mode, cycle projects ─────────── */}
-      {slot0 && (
+      {/* ── Nav arrows ── appear during the active phase of each project ──── */}
+      {arrows.cx > 0 && (
         <>
-          <NavArrowButton
-            direction="up"
-            onClick={() => cycleProject(-1)}
-            style={{
-              left: slot0.left + Math.round(slot0.width / 2) - 22,
-              top:  slot0.top - 60,
-            }}
+          <NavArrow
+            dir="up"
+            btnRef={arrowUpRef}
+            onClick={handleArrowUp}
+            left={arrows.cx}
+            top={arrows.upY}
           />
-          <NavArrowButton
-            direction="down"
-            onClick={() => cycleProject(1)}
-            style={{
-              left: slot0.left + Math.round(slot0.width / 2) - 22,
-              top:  slot0.top + slot0.height + 16,
-            }}
+          <NavArrow
+            dir="down"
+            btnRef={arrowDownRef}
+            onClick={handleArrowDown}
+            left={arrows.cx}
+            top={arrows.downY}
           />
         </>
       )}
 
-      {/* ── SCROLL ↑ — bottom right, CSS bounce ─────────────────────────────── */}
+      {/* ── SCROLL ↑ indicator ─────────────────────────────────────────────── */}
       <div
         style={{
           position: "absolute",
