@@ -29,16 +29,15 @@ export default function Sidebar() {
             className="block leading-none"
             style={{
               fontFamily: "var(--font-radio-grotesk), Impact, sans-serif",
-              fontSize: "28px",
+              fontSize: "22px",
               fontWeight: 700,
               color: "#F35900",
               letterSpacing: 0,
               lineHeight: 1,
+              whiteSpace: "nowrap",
             }}
           >
-            Harsha
-            <br />
-            Pillai
+            Harsha Pillai
           </span>
         </Link>
       </div>
