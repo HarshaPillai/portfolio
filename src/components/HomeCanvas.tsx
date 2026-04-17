@@ -72,8 +72,10 @@ const INTRO_W       = 200;
 const INTRO_H       = 140;
 const INTRO_BLUR    = 4;
 const INTRO_OPACITY = 0.5;
-const INTRO_END     = 0.15; // scroll progress at which orbit animation begins
-const TEXT_FADE_END = 0.10; // scroll progress at which intro text is fully gone
+// Phase 1 (0 → MOVE_END):  thumbnails slide to orbit slots at intro size, text fades
+// Phase 2 (MOVE_END → SCALE_END): thumbnails scale from intro size to orbit size
+const MOVE_END  = 0.10;
+const SCALE_END = 0.15; // orbit animation begins here
 
 // Scattered positions as fraction of canvas (left, top = center of thumbnail)
 const INTRO_POSITIONS = [
@@ -139,13 +141,20 @@ export default function HomeCanvas() {
     function render(scrollProg: number) {
       const w  = sticky.offsetWidth;
       const h  = sticky.offsetHeight;
-      const cx = w * 0.65;
+      // Bug 2 fix: center at 68% of full viewport width, offset by sidebar
+      const cx = window.innerWidth * 0.68 - 200;
       const cy = h * 0.5;
 
-      if (scrollProg < INTRO_END) {
-        // ── Intro / scatter → orbit transition ───────────────────────────────
-        const t    = scrollProg / INTRO_END;
-        const ease = t * t * (3 - 2 * t); // smoothstep
+      if (scrollProg < SCALE_END) {
+        // ── Phase 1 (0 → MOVE_END): slide to orbit slots, hold intro size ────
+        // ── Phase 2 (MOVE_END → SCALE_END): at orbit slots, scale to orbit size
+        const tMove  = Math.min(scrollProg / MOVE_END, 1);
+        const eMove  = tMove * tMove * (3 - 2 * tMove); // smoothstep
+
+        const tScale = scrollProg >= MOVE_END
+          ? (scrollProg - MOVE_END) / (SCALE_END - MOVE_END)
+          : 0;
+        const eScale = tScale * tScale * (3 - 2 * tScale); // smoothstep
 
         for (let i = 0; i < N; i++) {
           const orbitAng  = (i / N) * TWO_PI; // orbit angle at rotProgress = 0
@@ -160,12 +169,15 @@ export default function HomeCanvas() {
           const introX = INTRO_POSITIONS[i].left * w;
           const introY = INTRO_POSITIONS[i].top * h;
 
-          const x      = introX + (orbitX - introX) * ease;
-          const y      = introY + (orbitY - introY) * ease;
-          const width  = INTRO_W + (orbitW - INTRO_W) * ease;
-          const height = INTRO_H + (orbitH - INTRO_H) * ease;
-          const blur   = INTRO_BLUR + (orbitBlur - INTRO_BLUR) * ease;
-          const op     = INTRO_OPACITY + (orbitOp - INTRO_OPACITY) * ease;
+          // Position driven by phase 1 easing (all 7 arrive simultaneously at MOVE_END)
+          const x = introX + (orbitX - introX) * eMove;
+          const y = introY + (orbitY - introY) * eMove;
+
+          // Size/blur/opacity driven by phase 2 easing (held at intro values until MOVE_END)
+          const width  = INTRO_W + (orbitW - INTRO_W) * eScale;
+          const height = INTRO_H + (orbitH - INTRO_H) * eScale;
+          const blur   = INTRO_BLUR + (orbitBlur - INTRO_BLUR) * eScale;
+          const op     = INTRO_OPACITY + (orbitOp - INTRO_OPACITY) * eScale;
 
           const el = frameRefs.current[i];
           if (el) {
@@ -181,10 +193,10 @@ export default function HomeCanvas() {
           }
         }
 
-        // Intro text fades out by TEXT_FADE_END
+        // Intro text fades during phase 1 (gone by MOVE_END)
         const textEl = introTextRef.current;
         if (textEl) {
-          textEl.style.opacity = String(Math.max(0, 1 - scrollProg / TEXT_FADE_END));
+          textEl.style.opacity = String(Math.max(0, 1 - scrollProg / MOVE_END));
         }
 
         // Metadata hidden during intro
@@ -193,7 +205,7 @@ export default function HomeCanvas() {
 
       } else {
         // ── Orbit animation ───────────────────────────────────────────────────
-        const orbitRp = ((scrollProg - INTRO_END) / (1 - INTRO_END)) * 1.25;
+        const orbitRp = ((scrollProg - SCALE_END) / (1 - SCALE_END)) * 1.25;
 
         const textEl = introTextRef.current;
         if (textEl) textEl.style.opacity = "0";

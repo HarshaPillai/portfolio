@@ -19,8 +19,15 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 h-full z-50"
-      style={{ width: "var(--sidebar-width)", backgroundColor: "#FFFFFF" }}
+      style={{
+        position: "fixed",
+        left: 0,
+        top: 0,
+        height: "100%",
+        width: "var(--sidebar-width)",
+        zIndex: 50,
+        backgroundColor: "#FFFFFF",
+      }}
     >
       {/* Wordmark — floats top-left, lots of open space below */}
       <div style={{ position: "absolute", top: 32, left: 32 }}>
