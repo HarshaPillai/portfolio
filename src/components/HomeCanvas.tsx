@@ -227,7 +227,7 @@ export default function HomeCanvas() {
   // Ellipse center drifts rightward as progress increases so frames travel to the left side
   // progress=0: cx centered in canvas; progress=1: cx shifted so active frame (cx-RX) sits ~80px from content left
   const baseCX = size.w / 2;
-  const targetCX = 80 + TARGET_ACTIVE_W / 2 + RX; // at progress=1: active frame left edge = 80px from content left
+  const targetCX = 60 + TARGET_ACTIVE_W / 2 + RX; // at progress=1: active frame left edge = 60px from content left (260px from viewport)
   const cx = baseCX + (targetCX - baseCX) * progress;
   const cy = size.h / 2;
   // Active frame center = leftmost orbit point (for arrow positioning)
