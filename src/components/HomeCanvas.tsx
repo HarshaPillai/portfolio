@@ -54,51 +54,54 @@ const PROJECTS = [
   },
 ];
 
-const N = PROJECTS.length; // 7
-const TWO_PI = Math.PI * 2;
-const RY = 200;
+const N          = PROJECTS.length; // 7
+const TWO_PI     = Math.PI * 2;
+const RX         = 420;   // horizontal orbit radius
+const RY         = 160;   // vertical orbit radius
 const ARROW_SIZE = 44;
-// Scroll pixels per radian — gentler than 0.003 for smoother feel
-const SCROLL_SCALE = 0.002;
-// Lerp factor for display angle — low value = slow glide
-const LERP = 0.04;
-// progress reaches 1 after 1 full rotation (2π radians)
+// At 0.0026, 500vh @ ~900px viewport ≈ 1.9 full rotations (≥1.5 required)
+const SCROLL_SCALE       = 0.0026;
+const LERP               = 0.04;
 const PROGRESS_MAX_ANGLE = Math.PI * 2;
-// Frame base size (progress=0) and target sizes (progress=1)
-const BASE_W = 160;
-const TARGET_ACTIVE_W = 580;
-const TARGET_OPP_W = 200;
-// Fixed active frame height at full size, used for stable arrow positioning
-const ACTIVE_H_REF = TARGET_ACTIVE_W * (9 / 16);
-// Orbit radii — fixed; cx drifts rightward with progress so active frame travels left→right
-const RX = 460;
+// Frame dimensions: BASE (progress=0), ACTIVE (at active slot, progress=1), OPP (opposite slot)
+const BASE_W   = 160;
+const BASE_H   = 107;   // BASE_W × 2/3
+const ACTIVE_W = 600;
+const ACTIVE_H = 400;   // 3:2 aspect
+const OPP_W    = 140;
+const OPP_H    = 100;
 
+// Angular distance from active slot → cosine scale → dimensions/blur/opacity
 function getFrameProps(fa: number, progress: number) {
-  // Active position = leftmost point (Math.PI)
-  const d = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
-  const nd = Math.min(d, TWO_PI - d) / Math.PI; // 0=active, 1=opposite
+  const d            = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
+  const angleFromActive = Math.min(d, TWO_PI - d); // 0 = active, π = opposite
 
-  const aw = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
-  const ow = BASE_W + (TARGET_OPP_W - BASE_W) * progress * 0.3;
-  const width = aw - (aw - ow) * nd;
-  const height = width * (9 / 16);
-  const opacity = 1 - nd * 0.6;
-  const zIndex = Math.round(10 - nd * 10);
-  return { width, height, opacity, zIndex };
+  // Cosine scale: 1.0 at active, 0.0 at opposite (per spec: scale = 0.5 + 0.5·cos)
+  const scale = 0.5 + 0.5 * Math.cos(angleFromActive);
+
+  // Full-size dimensions (cosine-scaled); grow from BASE as progress increases
+  const fullW  = OPP_W + (ACTIVE_W - OPP_W) * scale;
+  const fullH  = OPP_H + (ACTIVE_H - OPP_H) * scale;
+  const width  = BASE_W + (fullW - BASE_W) * progress;
+  const height = BASE_H + (fullH - BASE_H) * progress;
+
+  // Blur: uniform fade-out at scroll start, position-based blur at full progress
+  //   active=0px, opposite=6px (per spec: 0–6px range)
+  const blur    = (1 - progress) * 8 + progress * 6 * (1 - scale);
+  const opacity = 0.4 + 0.6 * scale;           // 0.4 (opposite) → 1.0 (active)
+  const zIndex  = Math.round(1 + 9 * scale);   // 1 (opposite) → 10 (active)
+
+  return { width, height, blur, opacity, zIndex };
 }
 
 function getActiveIndex(ga: number): number {
   let best = 0;
   let bestDist = Infinity;
   for (let i = 0; i < N; i++) {
-    // frame 0 starts at Math.PI (leftmost = active), evenly spaced by 2π/N
-    const fa = ga + Math.PI + i * (TWO_PI / N);
-    const d = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
+    const fa   = ga + Math.PI + i * (TWO_PI / N);
+    const d    = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
     const dist = Math.min(d, TWO_PI - d);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = i;
-    }
+    if (dist < bestDist) { bestDist = dist; best = i; }
   }
   return best;
 }
@@ -162,19 +165,18 @@ function MetaRow({
 }
 
 export default function HomeCanvas() {
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  const [angle, setAngle] = useState(0);
+  const [size, setSize]             = useState({ w: 0, h: 0 });
+  const [angle, setAngle]           = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const stickyRef = useRef<HTMLDivElement>(null);
-  // targetAngleRef: raw scroll → angle (used for arrow navigation)
-  const targetAngleRef = useRef(0);
-  // displayAngleRef: lerped angle driving renders
-  const displayAngleRef = useRef(0);
-  const gaRef = useRef(0);
-  const lastActiveRef = useRef(0);
+  const stickyRef       = useRef<HTMLDivElement>(null);
+  const targetAngleRef  = useRef(0);   // raw scroll → angle (for arrow nav)
+  const displayAngleRef = useRef(0);   // lerped, drives renders
+  const gaRef           = useRef(0);
+  const lastActiveRef   = useRef(0);
+  const lastLogRef      = useRef(0);   // throttle console.log
 
-  // Resize observer on the sticky viewport div
+  // Resize observer
   useEffect(() => {
     const el = stickyRef.current;
     if (!el) return;
@@ -186,18 +188,23 @@ export default function HomeCanvas() {
     return () => ro.disconnect();
   }, []);
 
-  // Scroll sets the target angle only — rAF loop does the lerp
+  // Scroll → target angle (rAF loop does the lerp)
   useEffect(() => {
     const onScroll = () => {
       const target = window.scrollY * SCROLL_SCALE;
       targetAngleRef.current = target;
       gaRef.current = target;
+      // Log every 0.2 rad to verify scrub is wired
+      if (target - lastLogRef.current > 0.2 || target < 0.05) {
+        lastLogRef.current = target;
+        console.log("[HomeCanvas] rotationAngle:", target.toFixed(3));
+      }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // rAF loop: lerps displayAngle toward targetAngle, drives state updates
+  // rAF lerp loop — glide displayAngle toward targetAngle
   useEffect(() => {
     let rafId: number;
     const tick = () => {
@@ -205,7 +212,6 @@ export default function HomeCanvas() {
       if (Math.abs(diff) > 0.0001) {
         displayAngleRef.current += diff * LERP;
         const ga = displayAngleRef.current;
-
         const active = getActiveIndex(ga);
         if (active !== lastActiveRef.current) {
           lastActiveRef.current = active;
@@ -219,46 +225,40 @@ export default function HomeCanvas() {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  // progress caps at 1 after 1 full rotation; angle keeps growing for cycling
+  // progress: 0→1 over first full rotation; angle keeps growing for cycling
   const progress = Math.min(Math.abs(angle) / PROGRESS_MAX_ANGLE, 1);
-  // All frames share the same blur — fades to 0 as carousel reaches full size
-  const globalBlur = (1 - progress) * 8;
 
-  // Ellipse center drifts rightward as progress increases so frames travel to the left side
-  // progress=0: cx centered in canvas; progress=1: cx shifted so active frame (cx-RX) sits ~80px from content left
-  const baseCX = size.w / 2;
-  const targetCX = 60 + TARGET_ACTIVE_W / 2 + RX; // at progress=1: active frame left edge = 60px from content left (260px from viewport)
-  const cx = baseCX + (targetCX - baseCX) * progress;
+  // Orbit center drifts rightward: cx = size.w/2 at start, size.w/2 + RX at progress=1
+  // → activeCX (cx − RX) travels from size.w/2 − RX to size.w/2 (panel center)
+  const cx = size.w / 2 + RX * progress;
   const cy = size.h / 2;
-  // Active frame center = leftmost orbit point (for arrow positioning)
-  const activeCX = cx - RX;
-  // Active frame width at current progress (for arrow height reference)
-  const activeFrameW = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
+  // Active frame center at the leftmost orbit point
+  const activeCX      = cx - RX;
+  // Active frame width at current progress (scale=1 at active slot)
+  const activeFrameW  = BASE_W + (ACTIVE_W - BASE_W) * progress;
 
-  // Text is derived from scroll position — reappears when user scrolls back to top
-  const showText = angle < 0.3;
+  const showText    = angle < 0.3;
   const textOpacity = showText ? Math.max(0, 1 - angle / 0.3) : 0;
-  const showMeta = !showText && progress >= 0.8;
-  const proj = PROJECTS[activeIndex];
+  // Metadata visible after 0.3 progress (~1 viewport scroll) — much lower than old 0.8
+  const showMeta = !showText && progress >= 0.3;
+  const proj     = PROJECTS[activeIndex];
 
   return (
-    // Tall outer div creates real scroll space; 700vh ≥ 2π/SCROLL_SCALE px
-    <div style={{ height: "700vh" }}>
-      {/* Sticky canvas — sticks to top while page scrolls behind it.
-          Sidebar (position:fixed, z-50) lives in layout.tsx outside this wrapper
-          and is always visible above canvas content (max zIndex 30 here). */}
+    // 500vh gives ≥1.5 rotations at typical viewport heights
+    <div style={{ height: "500vh" }}>
+      {/* Sticky viewport — sidebar (position:fixed z-50) is outside this wrapper */}
       <div
         ref={stickyRef}
         style={{ position: "sticky", top: 0, height: "100vh", overflow: "hidden" }}
       >
-        {/* ── Carousel frames — 7 projects, active anchors on LEFT at Math.PI ─── */}
+        {/* ── Carousel frames — cosine-scaled by angular distance from active ─── */}
         {size.w > 0 &&
           PROJECTS.map((_, i) => {
-            // frame 0 starts at Math.PI (leftmost = active), evenly spaced by 2π/N
+            // frame 0 at Math.PI (leftmost = active), evenly spaced 2π/N
             const fa = angle + Math.PI + i * (TWO_PI / N);
-            const x = cx + RX * Math.cos(fa);
-            const y = cy + RY * Math.sin(fa);
-            const { width, height, opacity, zIndex } = getFrameProps(fa, progress);
+            const x  = cx + RX * Math.cos(fa);
+            const y  = cy + RY * Math.sin(fa);
+            const { width, height, blur, opacity, zIndex } = getFrameProps(fa, progress);
             return (
               <div
                 key={i}
@@ -269,7 +269,7 @@ export default function HomeCanvas() {
                   width,
                   height,
                   backgroundColor: "#C4C4C4",
-                  filter: `blur(${globalBlur}px)`,
+                  filter: `blur(${blur}px)`,
                   opacity,
                   zIndex,
                 }}
@@ -277,7 +277,7 @@ export default function HomeCanvas() {
             );
           })}
 
-        {/* ── Positioning text — fades with scroll, reappears at top ───────────── */}
+        {/* ── Positioning text — fades out on scroll, back at top ─────────────── */}
         {textOpacity > 0 && (
           <div
             style={{
@@ -304,7 +304,7 @@ export default function HomeCanvas() {
           </div>
         )}
 
-        {/* ── Metadata panel — between sidebar edge and active frame left ──────── */}
+        {/* ── Metadata panel — left of active frame, vertically centered ───────── */}
         {showMeta && (
           <div
             style={{
@@ -319,15 +319,15 @@ export default function HomeCanvas() {
           >
             <div key={activeIndex} style={{ animation: "metaFadeIn 0.3s ease" }}>
               <MetaRow label="Project" value={proj.name} link />
-              <MetaRow label="Client" value={proj.client} />
-              <MetaRow label="Year" value={proj.year} />
-              <MetaRow label="About" value={proj.about} />
-              <MetaRow label="Tags" value={proj.tags.join("  ")} mono />
+              <MetaRow label="Client"  value={proj.client} />
+              <MetaRow label="Year"    value={proj.year} />
+              <MetaRow label="About"   value={proj.about} />
+              <MetaRow label="Tags"    value={proj.tags.join("  ")} mono />
             </div>
           </div>
         )}
 
-        {/* ── Up / down arrows — above and below active frame on the LEFT ──────── */}
+        {/* ── Arrows — centered above/below the active frame ───────────────────── */}
         {showMeta && size.w > 0 && (
           <>
             <button
@@ -341,7 +341,7 @@ export default function HomeCanvas() {
               style={{
                 position: "absolute",
                 left: activeCX - ARROW_SIZE / 2,
-                top: cy - ACTIVE_H_REF / 2 - ARROW_SIZE - 16,
+                top: cy - ACTIVE_H / 2 - ARROW_SIZE - 16,
                 width: ARROW_SIZE,
                 height: ARROW_SIZE,
                 borderRadius: "50%",
@@ -376,7 +376,7 @@ export default function HomeCanvas() {
               style={{
                 position: "absolute",
                 left: activeCX - ARROW_SIZE / 2,
-                top: cy + ACTIVE_H_REF / 2 + 16,
+                top: cy + ACTIVE_H / 2 + 16,
                 width: ARROW_SIZE,
                 height: ARROW_SIZE,
                 borderRadius: "50%",
