@@ -58,8 +58,10 @@ const N = PROJECTS.length; // 7
 const TWO_PI = Math.PI * 2;
 const RY = 200;
 const ARROW_SIZE = 44;
-// Scroll pixels per radian
-const SCROLL_SCALE = 0.003;
+// Scroll pixels per radian — gentler than 0.003 for smoother feel
+const SCROLL_SCALE = 0.002;
+// Lerp factor for display angle — low value = slow glide
+const LERP = 0.04;
 // progress reaches 1 after 1 full rotation (2π radians)
 const PROGRESS_MAX_ANGLE = Math.PI * 2;
 // Frame base size (progress=0) and target sizes (progress=1)
@@ -68,12 +70,13 @@ const TARGET_ACTIVE_W = 580;
 const TARGET_OPP_W = 200;
 // Fixed active frame height at full size, used for stable arrow positioning
 const ACTIVE_H_REF = TARGET_ACTIVE_W * (9 / 16);
+// Left padding from content area left edge to active frame left edge
+const ACTIVE_LEFT_PAD = 60;
 
 function getFrameProps(fa: number, progress: number) {
-  // Active position = rightmost point (angle = 0)
-  const normalizedAngle = ((fa % TWO_PI) + TWO_PI) % TWO_PI;
-  const distFromActive = Math.min(normalizedAngle, TWO_PI - normalizedAngle);
-  const nd = distFromActive / Math.PI; // 0=active, 1=opposite
+  // Active position = leftmost point (Math.PI)
+  const d = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
+  const nd = Math.min(d, TWO_PI - d) / Math.PI; // 0=active, 1=opposite
 
   const aw = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
   const ow = BASE_W + (TARGET_OPP_W - BASE_W) * progress * 0.3;
@@ -88,9 +91,10 @@ function getActiveIndex(ga: number): number {
   let best = 0;
   let bestDist = Infinity;
   for (let i = 0; i < N; i++) {
-    const fa = ga + i * (TWO_PI / N);
-    const norm = ((fa % TWO_PI) + TWO_PI) % TWO_PI;
-    const dist = Math.min(norm, TWO_PI - norm);
+    // frame 0 starts at Math.PI (leftmost = active), evenly spaced by 2π/N
+    const fa = ga + Math.PI + i * (TWO_PI / N);
+    const d = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
+    const dist = Math.min(d, TWO_PI - d);
     if (dist < bestDist) {
       bestDist = dist;
       best = i;
@@ -163,6 +167,10 @@ export default function HomeCanvas() {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const stickyRef = useRef<HTMLDivElement>(null);
+  // targetAngleRef: raw scroll → angle (used for arrow navigation)
+  const targetAngleRef = useRef(0);
+  // displayAngleRef: lerped angle driving renders
+  const displayAngleRef = useRef(0);
   const gaRef = useRef(0);
   const lastActiveRef = useRef(0);
 
@@ -178,22 +186,37 @@ export default function HomeCanvas() {
     return () => ro.disconnect();
   }, []);
 
-  // Scroll drives globalAngle — real scrollbar, no wheel prevention
+  // Scroll sets the target angle only — rAF loop does the lerp
   useEffect(() => {
     const onScroll = () => {
-      const ga = window.scrollY * SCROLL_SCALE;
-      gaRef.current = ga;
-
-      const active = getActiveIndex(ga);
-      if (active !== lastActiveRef.current) {
-        lastActiveRef.current = active;
-        setActiveIndex(active);
-      }
-
-      setAngle(ga);
+      const target = window.scrollY * SCROLL_SCALE;
+      targetAngleRef.current = target;
+      gaRef.current = target;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // rAF loop: lerps displayAngle toward targetAngle, drives state updates
+  useEffect(() => {
+    let rafId: number;
+    const tick = () => {
+      const diff = targetAngleRef.current - displayAngleRef.current;
+      if (Math.abs(diff) > 0.0001) {
+        displayAngleRef.current += diff * LERP;
+        const ga = displayAngleRef.current;
+
+        const active = getActiveIndex(ga);
+        if (active !== lastActiveRef.current) {
+          lastActiveRef.current = active;
+          setActiveIndex(active);
+        }
+        setAngle(ga);
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   // progress caps at 1 after 1 full rotation; angle keeps growing for cycling
@@ -205,10 +228,10 @@ export default function HomeCanvas() {
   const cy = size.h / 2;
   // Active frame width at current progress
   const activeFrameW = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
-  // Active frame right edge is anchored 40px from right viewport edge
-  const activeCX = size.w - 40 - activeFrameW / 2;
-  // Orbit radius = distance from canvas center to active frame center
-  const rx = Math.max(activeCX - cx, 50);
+  // Active frame center: left edge anchored at ACTIVE_LEFT_PAD from content left
+  const activeCX = ACTIVE_LEFT_PAD + activeFrameW / 2;
+  // Orbit radius = distance from canvas center to active frame center (leftmost point)
+  const rx = Math.max(cx - activeCX, 50);
 
   // Text is derived from scroll position — reappears when user scrolls back to top
   const showText = angle < 0.3;
@@ -219,20 +242,22 @@ export default function HomeCanvas() {
   return (
     // Tall outer div creates real scroll space; 700vh ≥ 2π/SCROLL_SCALE px
     <div style={{ height: "700vh" }}>
-      {/* Sticky canvas — sticks to top while page scrolls behind it */}
+      {/* Sticky canvas — sticks to top while page scrolls behind it.
+          Sidebar (position:fixed, z-50) lives in layout.tsx outside this wrapper
+          and is always visible above canvas content (max zIndex 30 here). */}
       <div
         ref={stickyRef}
         style={{ position: "sticky", top: 0, height: "100vh", overflow: "hidden" }}
       >
-        {/* ── Carousel frames — 7 projects, evenly spaced, active at right (0°) ── */}
+        {/* ── Carousel frames — 7 projects, active anchors on LEFT at Math.PI ─── */}
         {size.w > 0 &&
           PROJECTS.map((_, i) => {
-            // frame 0 starts at 0 (rightmost = active); evenly spaced by 2π/N
-            const fa = angle + i * (TWO_PI / N);
+            // frame 0 starts at Math.PI (leftmost = active), evenly spaced by 2π/N
+            const fa = angle + Math.PI + i * (TWO_PI / N);
             const rawX = cx + rx * Math.cos(fa);
             const y = cy + RY * Math.sin(fa);
             const { width, height, opacity, zIndex } = getFrameProps(fa, progress);
-            // Clamp so no frame's right edge exceeds canvas width by more than 40px
+            // Clamp right edge — frame can't exceed canvas right by more than 40px
             const x = Math.min(rawX, size.w - width / 2 - 40);
             return (
               <div
@@ -279,15 +304,15 @@ export default function HomeCanvas() {
           </div>
         )}
 
-        {/* ── Metadata panel — between sidebar and active frame on right ──────── */}
+        {/* ── Metadata panel — between sidebar edge and active frame left ──────── */}
         {showMeta && (
           <div
             style={{
               position: "absolute",
-              left: 24,
+              left: 0,
               top: "50%",
               transform: "translateY(-50%)",
-              width: 280,
+              width: 220,
               zIndex: 20,
               animation: "metaFadeIn 0.3s ease",
             }}
@@ -302,7 +327,7 @@ export default function HomeCanvas() {
           </div>
         )}
 
-        {/* ── Up / down arrows — above and below active frame on the right ─────── */}
+        {/* ── Up / down arrows — above and below active frame on the LEFT ──────── */}
         {showMeta && size.w > 0 && (
           <>
             <button
