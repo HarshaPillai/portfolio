@@ -33,12 +33,13 @@ const PROJECTS = [
   },
 ];
 
-const RY = 180;
+const RX = 460;
+const RY = 200;
 const ARROW_SIZE = 44;
 // Scroll pixels per radian
 const SCROLL_SCALE = 0.003;
-// progress reaches 1 after 3 full rotations (6π radians)
-const PROGRESS_MAX_ANGLE = Math.PI * 6;
+// progress reaches 1 after 1 full rotation (2π radians)
+const PROGRESS_MAX_ANGLE = Math.PI * 2;
 // Frame base size (progress=0) and target sizes (progress=1)
 const BASE_W = 160;
 const TARGET_ACTIVE_W = 580;
@@ -56,10 +57,9 @@ function getFrameProps(fa: number, progress: number) {
   const ow = BASE_W + (TARGET_OPP_W - BASE_W) * progress * 0.3;
   const width = aw - (aw - ow) * nd;
   const height = width * (9 / 16);
-  const blur = nd * 8;
   const opacity = 1 - nd * 0.6;
   const zIndex = Math.round(10 - nd * 10);
-  return { width, height, blur, opacity, zIndex };
+  return { width, height, opacity, zIndex };
 }
 
 function getActiveIndex(ga: number): number {
@@ -141,7 +141,6 @@ export default function HomeCanvas() {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [angle, setAngle] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [textGone, setTextGone] = useState(false);
 
   const stickyRef = useRef<HTMLDivElement>(null);
   const gaRef = useRef(0);
@@ -165,8 +164,6 @@ export default function HomeCanvas() {
       const ga = window.scrollY * SCROLL_SCALE;
       gaRef.current = ga;
 
-      if (ga > 0.3) setTextGone(true);
-
       const active = getActiveIndex(ga);
       if (active !== lastActiveRef.current) {
         lastActiveRef.current = active;
@@ -179,23 +176,25 @@ export default function HomeCanvas() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // progress caps at 1 after 1 full rotation; angle keeps growing for cycling
   const progress = Math.min(Math.abs(angle) / PROGRESS_MAX_ANGLE, 1);
+  // All frames share the same blur — fades to 0 as carousel reaches full size
+  const globalBlur = (1 - progress) * 8;
 
-  // Orbit geometry — derived from canvas dimensions and current frame size
   const cx = size.w / 2;
   const cy = size.h / 2;
-  // Active frame width at current progress
+  // Active frame width at current progress — used only for arrow positioning
   const activeFrameW = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
-  // Active frame center lands 80px from left edge + half its own width
   const activeCX = 80 + activeFrameW / 2;
-  // Orbit radius = distance from canvas center to active position
-  const rx = Math.max(cx - activeCX, 50);
-  const textOpacity = textGone ? 0 : Math.max(0, 1 - angle / 0.3);
-  const showMeta = textGone && progress >= 0.8;
+
+  // Text is derived from scroll position — reappears when user scrolls back to top
+  const showText = angle < 0.3;
+  const textOpacity = showText ? Math.max(0, 1 - angle / 0.3) : 0;
+  const showMeta = !showText && progress >= 0.8;
   const proj = PROJECTS[activeIndex];
 
   return (
-    // Tall outer div creates real scroll space; 700vh ≥ 6π/SCROLL_SCALE px
+    // Tall outer div creates real scroll space; 700vh ≥ 2π/SCROLL_SCALE px
     <div style={{ height: "700vh" }}>
       {/* Sticky canvas — sticks to top while page scrolls behind it */}
       <div
@@ -207,12 +206,9 @@ export default function HomeCanvas() {
           PROJECTS.map((_, i) => {
             // frame 0 starts at Math.PI (leftmost = active)
             const fa = angle + Math.PI + i * (Math.PI / 2);
-            const rawX = cx + rx * Math.cos(fa);
+            const rawX = cx + RX * Math.cos(fa);
             const y = cy + RY * Math.sin(fa);
-            const { width, height, blur, opacity, zIndex } = getFrameProps(
-              fa,
-              progress
-            );
+            const { width, height, opacity, zIndex } = getFrameProps(fa, progress);
             // Clamp so no frame's right edge exceeds canvas width by more than 40px
             const x = Math.min(rawX, size.w - width / 2 - 40);
             return (
@@ -225,7 +221,7 @@ export default function HomeCanvas() {
                   width,
                   height,
                   backgroundColor: "#C4C4C4",
-                  filter: `blur(${blur}px)`,
+                  filter: `blur(${globalBlur}px)`,
                   opacity,
                   zIndex,
                 }}
@@ -233,7 +229,7 @@ export default function HomeCanvas() {
             );
           })}
 
-        {/* ── Positioning text — fades out past 0.3rad, never returns ─────────── */}
+        {/* ── Positioning text — fades with scroll, reappears at top ───────────── */}
         {textOpacity > 0 && (
           <div
             style={{
