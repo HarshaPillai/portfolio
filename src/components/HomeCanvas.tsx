@@ -33,8 +33,7 @@ const PROJECTS = [
   },
 ];
 
-const RX = 420;
-const RY = 200;
+const RY = 180;
 const ARROW_SIZE = 44;
 // Scroll pixels per radian
 const SCROLL_SCALE = 0.003;
@@ -180,12 +179,17 @@ export default function HomeCanvas() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Orbit geometry: active frame (leftmost, Math.PI) at 67% canvas width
-  const cx = size.w * 0.67 + RX;
-  const cy = size.h / 2;
-  const activeCX = cx - RX; // = size.w * 0.67
-
   const progress = Math.min(Math.abs(angle) / PROGRESS_MAX_ANGLE, 1);
+
+  // Orbit geometry — derived from canvas dimensions and current frame size
+  const cx = size.w / 2;
+  const cy = size.h / 2;
+  // Active frame width at current progress
+  const activeFrameW = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
+  // Active frame center lands 80px from left edge + half its own width
+  const activeCX = 80 + activeFrameW / 2;
+  // Orbit radius = distance from canvas center to active position
+  const rx = Math.max(cx - activeCX, 50);
   const textOpacity = textGone ? 0 : Math.max(0, 1 - angle / 0.3);
   const showMeta = textGone && progress >= 0.8;
   const proj = PROJECTS[activeIndex];
@@ -203,12 +207,14 @@ export default function HomeCanvas() {
           PROJECTS.map((_, i) => {
             // frame 0 starts at Math.PI (leftmost = active)
             const fa = angle + Math.PI + i * (Math.PI / 2);
-            const x = cx + RX * Math.cos(fa);
+            const rawX = cx + rx * Math.cos(fa);
             const y = cy + RY * Math.sin(fa);
             const { width, height, blur, opacity, zIndex } = getFrameProps(
               fa,
               progress
             );
+            // Clamp so no frame's right edge exceeds canvas width by more than 40px
+            const x = Math.min(rawX, size.w - width / 2 - 40);
             return (
               <div
                 key={i}
