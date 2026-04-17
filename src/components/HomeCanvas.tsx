@@ -70,8 +70,8 @@ const TARGET_ACTIVE_W = 580;
 const TARGET_OPP_W = 200;
 // Fixed active frame height at full size, used for stable arrow positioning
 const ACTIVE_H_REF = TARGET_ACTIVE_W * (9 / 16);
-// Left padding from content area left edge to active frame left edge
-const ACTIVE_LEFT_PAD = 60;
+// Orbit radii — fixed; cx drifts rightward with progress so active frame travels left→right
+const RX = 460;
 
 function getFrameProps(fa: number, progress: number) {
   // Active position = leftmost point (Math.PI)
@@ -224,14 +224,16 @@ export default function HomeCanvas() {
   // All frames share the same blur — fades to 0 as carousel reaches full size
   const globalBlur = (1 - progress) * 8;
 
-  const cx = size.w / 2;
+  // Ellipse center drifts rightward as progress increases so frames travel to the left side
+  // progress=0: cx centered in canvas; progress=1: cx shifted so active frame (cx-RX) sits ~80px from content left
+  const baseCX = size.w / 2;
+  const targetCX = 80 + RX; // at progress=1: cx - RX = 80px from content left
+  const cx = baseCX + (targetCX - baseCX) * progress;
   const cy = size.h / 2;
-  // Active frame width at current progress
+  // Active frame center = leftmost orbit point (for arrow positioning)
+  const activeCX = cx - RX;
+  // Active frame width at current progress (for arrow height reference)
   const activeFrameW = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
-  // Active frame center: left edge anchored at ACTIVE_LEFT_PAD from content left
-  const activeCX = ACTIVE_LEFT_PAD + activeFrameW / 2;
-  // Orbit radius = distance from canvas center to active frame center (leftmost point)
-  const rx = Math.max(cx - activeCX, 50);
 
   // Text is derived from scroll position — reappears when user scrolls back to top
   const showText = angle < 0.3;
@@ -254,11 +256,9 @@ export default function HomeCanvas() {
           PROJECTS.map((_, i) => {
             // frame 0 starts at Math.PI (leftmost = active), evenly spaced by 2π/N
             const fa = angle + Math.PI + i * (TWO_PI / N);
-            const rawX = cx + rx * Math.cos(fa);
+            const x = cx + RX * Math.cos(fa);
             const y = cy + RY * Math.sin(fa);
             const { width, height, opacity, zIndex } = getFrameProps(fa, progress);
-            // Clamp right edge — frame can't exceed canvas right by more than 40px
-            const x = Math.min(rawX, size.w - width / 2 - 40);
             return (
               <div
                 key={i}
