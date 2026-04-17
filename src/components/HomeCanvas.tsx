@@ -31,9 +31,31 @@ const PROJECTS = [
     about: "Reimagining career exploration for high schoolers through values-based matching",
     tags: ["#ACADEMIC", "#UX", "#RESEARCH"],
   },
+  {
+    name: "Care+",
+    client: "SVA",
+    year: "2024",
+    about: "Empowering nurses to reclaim time through a community program connecting them with high school student volunteers",
+    tags: ["#ACADEMIC", "#SERVICE DESIGN", "#HEALTH"],
+  },
+  {
+    name: "Strava x Recover Athletics",
+    client: "SVA",
+    year: "2023",
+    about: "Integrating athlete rehabilitation features into Strava through an imagined partnership with Recover Athletics",
+    tags: ["#ACADEMIC", "#PRODUCT DESIGN", "#HEALTH"],
+  },
+  {
+    name: "Lost in Translation",
+    client: "SVA MFA Thesis",
+    year: "2025",
+    about: "Rethinking expressions of care across distances — exploring intergenerational and intercultural communication within Asian immigrant families",
+    tags: ["#THESIS", "#RESEARCH", "#SERVICE DESIGN"],
+  },
 ];
 
-const RX = 460;
+const N = PROJECTS.length; // 7
+const TWO_PI = Math.PI * 2;
 const RY = 200;
 const ARROW_SIZE = 44;
 // Scroll pixels per radian
@@ -48,10 +70,10 @@ const TARGET_OPP_W = 200;
 const ACTIVE_H_REF = TARGET_ACTIVE_W * (9 / 16);
 
 function getFrameProps(fa: number, progress: number) {
-  const TWO_PI = Math.PI * 2;
-  // Angular distance from active position (Math.PI = leftmost)
-  const d = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
-  const nd = Math.min(d, TWO_PI - d) / Math.PI; // 0=active, 1=opposite
+  // Active position = rightmost point (angle = 0)
+  const normalizedAngle = ((fa % TWO_PI) + TWO_PI) % TWO_PI;
+  const distFromActive = Math.min(normalizedAngle, TWO_PI - normalizedAngle);
+  const nd = distFromActive / Math.PI; // 0=active, 1=opposite
 
   const aw = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
   const ow = BASE_W + (TARGET_OPP_W - BASE_W) * progress * 0.3;
@@ -63,14 +85,12 @@ function getFrameProps(fa: number, progress: number) {
 }
 
 function getActiveIndex(ga: number): number {
-  const TWO_PI = Math.PI * 2;
   let best = 0;
   let bestDist = Infinity;
-  for (let i = 0; i < 4; i++) {
-    // frame 0 starts at Math.PI (leftmost) so offset by Math.PI
-    const fa = ga + Math.PI + i * (Math.PI / 2);
-    const d = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
-    const dist = Math.min(d, TWO_PI - d);
+  for (let i = 0; i < N; i++) {
+    const fa = ga + i * (TWO_PI / N);
+    const norm = ((fa % TWO_PI) + TWO_PI) % TWO_PI;
+    const dist = Math.min(norm, TWO_PI - norm);
     if (dist < bestDist) {
       bestDist = dist;
       best = i;
@@ -183,9 +203,12 @@ export default function HomeCanvas() {
 
   const cx = size.w / 2;
   const cy = size.h / 2;
-  // Active frame width at current progress — used only for arrow positioning
+  // Active frame width at current progress
   const activeFrameW = BASE_W + (TARGET_ACTIVE_W - BASE_W) * progress;
-  const activeCX = 80 + activeFrameW / 2;
+  // Active frame right edge is anchored 40px from right viewport edge
+  const activeCX = size.w - 40 - activeFrameW / 2;
+  // Orbit radius = distance from canvas center to active frame center
+  const rx = Math.max(activeCX - cx, 50);
 
   // Text is derived from scroll position — reappears when user scrolls back to top
   const showText = angle < 0.3;
@@ -201,12 +224,12 @@ export default function HomeCanvas() {
         ref={stickyRef}
         style={{ position: "sticky", top: 0, height: "100vh", overflow: "hidden" }}
       >
-        {/* ── Carousel frames — single unified system ──────────────────────────── */}
+        {/* ── Carousel frames — 7 projects, evenly spaced, active at right (0°) ── */}
         {size.w > 0 &&
           PROJECTS.map((_, i) => {
-            // frame 0 starts at Math.PI (leftmost = active)
-            const fa = angle + Math.PI + i * (Math.PI / 2);
-            const rawX = cx + RX * Math.cos(fa);
+            // frame 0 starts at 0 (rightmost = active); evenly spaced by 2π/N
+            const fa = angle + i * (TWO_PI / N);
+            const rawX = cx + rx * Math.cos(fa);
             const y = cy + RY * Math.sin(fa);
             const { width, height, opacity, zIndex } = getFrameProps(fa, progress);
             // Clamp so no frame's right edge exceeds canvas width by more than 40px
@@ -256,7 +279,7 @@ export default function HomeCanvas() {
           </div>
         )}
 
-        {/* ── Metadata panel — left of active frame, appears at progress ≥ 0.8 ── */}
+        {/* ── Metadata panel — between sidebar and active frame on right ──────── */}
         {showMeta && (
           <div
             style={{
@@ -279,13 +302,13 @@ export default function HomeCanvas() {
           </div>
         )}
 
-        {/* ── Up / down arrows — above and below active frame, appear with meta ── */}
+        {/* ── Up / down arrows — above and below active frame on the right ─────── */}
         {showMeta && size.w > 0 && (
           <>
             <button
               onClick={() =>
                 window.scrollTo({
-                  top: Math.max(0, gaRef.current - Math.PI / 2) / SCROLL_SCALE,
+                  top: Math.max(0, gaRef.current - TWO_PI / N) / SCROLL_SCALE,
                   behavior: "smooth",
                 })
               }
@@ -320,7 +343,7 @@ export default function HomeCanvas() {
             <button
               onClick={() =>
                 window.scrollTo({
-                  top: (gaRef.current + Math.PI / 2) / SCROLL_SCALE,
+                  top: (gaRef.current + TWO_PI / N) / SCROLL_SCALE,
                   behavior: "smooth",
                 })
               }
