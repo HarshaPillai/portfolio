@@ -54,51 +54,61 @@ const PROJECTS = [
   },
 ];
 
-const N          = PROJECTS.length; // 7
-const TWO_PI     = Math.PI * 2;
-const RX         = 420;   // horizontal orbit radius
-const RY         = 160;   // vertical orbit radius
+const N       = PROJECTS.length; // 7
+const TWO_PI  = Math.PI * 2;
+// ── Orbit geometry ────────────────────────────────────────────────────────────
+const BASE_RX  = 380;  // base horizontal radius
+const CX_OFFSET = 90;  // active frame sits this far right of panel centre at progress=1
+const BREATHE  = 80;   // orbit radius expands by this much when active frame is at slot
+const RY       = 160;  // vertical radius (fixed)
 const ARROW_SIZE = 44;
-// At 0.0026, 500vh @ ~900px viewport ≈ 1.9 full rotations (≥1.5 required)
-const SCROLL_SCALE       = 0.0026;
-const LERP               = 0.04;
-const PROGRESS_MAX_ANGLE = Math.PI * 2;
-// Frame dimensions: BASE (progress=0), ACTIVE (at active slot, progress=1), OPP (opposite slot)
+// ── Dwell-phase timing ────────────────────────────────────────────────────────
+// Each project cycle = ANIMATE phase (40 %) + DWELL phase (60 %)
+// Raw scroll angle drives progress; display angle is locked during dwell.
+const SLOT      = TWO_PI / N;      // display angle per project
+const DWELL_RAW = SLOT * 1.5;      // raw angle for dwell (= SLOT × 60 %/40 %)
+const CYCLE     = SLOT + DWELL_RAW; // raw angle per complete project cycle
+// ── Scroll mapping ────────────────────────────────────────────────────────────
+const SCROLL_SCALE = 0.004; // 700 vh @900 px ≈ 7 full cycles, plenty of dwell
+const LERP         = 0.04;
+// Frames reach full size at end of first cycle (animate + dwell)
+const PROGRESS_MAX_ANGLE = CYCLE;
+// ── Frame dimensions ──────────────────────────────────────────────────────────
 const BASE_W   = 160;
-const BASE_H   = 107;   // BASE_W × 2/3
+const BASE_H   = 107;   // ≈ BASE_W × 2/3
 const ACTIVE_W = 600;
-const ACTIVE_H = 400;   // 3:2 aspect
+const ACTIVE_H = 400;
 const OPP_W    = 140;
 const OPP_H    = 100;
 
-// Angular distance from active slot → cosine scale → dimensions/blur/opacity
+// Maps raw scroll angle → display angle, pausing during dwell phases
+function rawToDisplay(raw: number): number {
+  const slotIndex = Math.floor(raw / CYCLE);
+  const offset    = raw % CYCLE;
+  return slotIndex * SLOT + Math.min(offset, SLOT); // lock at SLOT during dwell
+}
+
+// Cosine-scaled frame props; size grows with progress, shape by angular distance
 function getFrameProps(fa: number, progress: number) {
   const d            = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
-  const angleFromActive = Math.min(d, TWO_PI - d); // 0 = active, π = opposite
-
-  // Cosine scale: 1.0 at active, 0.0 at opposite (per spec: scale = 0.5 + 0.5·cos)
-  const scale = 0.5 + 0.5 * Math.cos(angleFromActive);
-
-  // Full-size dimensions (cosine-scaled); grow from BASE as progress increases
+  const angleFromActive = Math.min(d, TWO_PI - d);
+  const scale        = 0.5 + 0.5 * Math.cos(angleFromActive); // 1=active, 0=opposite
   const fullW  = OPP_W + (ACTIVE_W - OPP_W) * scale;
   const fullH  = OPP_H + (ACTIVE_H - OPP_H) * scale;
   const width  = BASE_W + (fullW - BASE_W) * progress;
   const height = BASE_H + (fullH - BASE_H) * progress;
-
-  // Blur: uniform fade-out at scroll start, position-based blur at full progress
-  //   active=0px, opposite=6px (per spec: 0–6px range)
+  // Blur: global fade-out at start, position-based at full progress
   const blur    = (1 - progress) * 8 + progress * 6 * (1 - scale);
-  const opacity = 0.4 + 0.6 * scale;           // 0.4 (opposite) → 1.0 (active)
-  const zIndex  = Math.round(1 + 9 * scale);   // 1 (opposite) → 10 (active)
-
+  const opacity = 0.4 + 0.6 * scale;
+  const zIndex  = Math.round(1 + 9 * scale);
   return { width, height, blur, opacity, zIndex };
 }
 
-function getActiveIndex(ga: number): number {
+function getActiveIndex(displayAngle: number): number {
   let best = 0;
   let bestDist = Infinity;
   for (let i = 0; i < N; i++) {
-    const fa   = ga + Math.PI + i * (TWO_PI / N);
+    const fa   = displayAngle + Math.PI + i * SLOT;
     const d    = ((fa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
     const dist = Math.min(d, TWO_PI - d);
     if (dist < bestDist) { bestDist = dist; best = i; }
@@ -107,56 +117,32 @@ function getActiveIndex(ga: number): number {
 }
 
 function MetaRow({
-  label,
-  value,
-  link,
-  mono,
+  label, value, link, mono,
 }: {
-  label: string;
-  value: string;
-  link?: boolean;
-  mono?: boolean;
+  label: string; value: string; link?: boolean; mono?: boolean;
 }) {
   return (
-    <div
-      style={{
-        borderBottom: "1px solid #E5E5E5",
-        paddingTop: 12,
-        paddingBottom: 12,
-        display: "grid",
-        gridTemplateColumns: "60px 1fr",
-        gap: "0 10px",
-        alignItems: "start",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-dm-mono), monospace",
-          fontSize: 10,
-          letterSpacing: "-0.09em",
-          color: "rgba(58,58,58,0.5)",
-          textTransform: "uppercase",
-          paddingTop: 3,
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontFamily: mono
-            ? "var(--font-dm-mono), monospace"
-            : "var(--font-jakarta), system-ui, sans-serif",
-          fontSize: mono ? 11 : 16,
-          fontWeight: 500,
-          color: mono ? "#B5B5B5" : "#3A3A3A",
-          letterSpacing: mono ? "-0.09em" : "-0.05em",
-          lineHeight: 1.45,
-          display: "flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 4,
-        }}
-      >
+    <div style={{
+      borderBottom: "1px solid #E5E5E5",
+      paddingTop: 12, paddingBottom: 12,
+      display: "grid", gridTemplateColumns: "60px 1fr",
+      gap: "0 10px", alignItems: "start",
+    }}>
+      <span style={{
+        fontFamily: "var(--font-dm-mono), monospace",
+        fontSize: 10, letterSpacing: "-0.09em",
+        color: "rgba(58,58,58,0.5)", textTransform: "uppercase", paddingTop: 3,
+      }}>{label}</span>
+      <span style={{
+        fontFamily: mono
+          ? "var(--font-dm-mono), monospace"
+          : "var(--font-jakarta), system-ui, sans-serif",
+        fontSize: mono ? 11 : 16, fontWeight: 500,
+        color: mono ? "#B5B5B5" : "#3A3A3A",
+        letterSpacing: mono ? "-0.09em" : "-0.05em",
+        lineHeight: 1.45, display: "flex", alignItems: "center",
+        flexWrap: "wrap", gap: 4,
+      }}>
         {value}
         {link && <span style={{ color: "#F35900" }}>↗</span>}
       </span>
@@ -165,16 +151,17 @@ function MetaRow({
 }
 
 export default function HomeCanvas() {
-  const [size, setSize]             = useState({ w: 0, h: 0 });
-  const [angle, setAngle]           = useState(0);
+  const [size, setSize]               = useState({ w: 0, h: 0 });
+  const [angle, setAngle]             = useState(0); // lerped display angle → orbital positions
+  const [rawAngle, setRawAngle]       = useState(0); // raw scroll angle → progress / size
   const [activeIndex, setActiveIndex] = useState(0);
 
   const stickyRef       = useRef<HTMLDivElement>(null);
-  const targetAngleRef  = useRef(0);   // raw scroll → angle (for arrow nav)
-  const displayAngleRef = useRef(0);   // lerped, drives renders
-  const gaRef           = useRef(0);
+  const targetDispRef   = useRef(0);  // rawToDisplay(rawAngle) — lerp target
+  const displayAngleRef = useRef(0);  // lerped display angle
+  const gaRef           = useRef(0);  // raw angle for arrow scroll calculations
   const lastActiveRef   = useRef(0);
-  const lastLogRef      = useRef(0);   // throttle console.log
+  const lastLogRef      = useRef(0);
 
   // Resize observer
   useEffect(() => {
@@ -188,30 +175,32 @@ export default function HomeCanvas() {
     return () => ro.disconnect();
   }, []);
 
-  // Scroll → target angle (rAF loop does the lerp)
+  // Scroll → raw angle; dwell mapping converts to display target
   useEffect(() => {
     const onScroll = () => {
-      const target = window.scrollY * SCROLL_SCALE;
-      targetAngleRef.current = target;
-      gaRef.current = target;
-      // Log every 0.2 rad to verify scrub is wired
-      if (target - lastLogRef.current > 0.2 || target < 0.05) {
-        lastLogRef.current = target;
-        console.log("[HomeCanvas] rotationAngle:", target.toFixed(3));
+      const raw = window.scrollY * SCROLL_SCALE;
+      gaRef.current          = raw;
+      targetDispRef.current  = rawToDisplay(raw);
+      setRawAngle(raw);
+      // Debug: log rotationAngle every 0.2 rad
+      if (raw - lastLogRef.current > 0.2 || raw < 0.05) {
+        lastLogRef.current = raw;
+        console.log("[HomeCanvas] rotationAngle:", raw.toFixed(3),
+          "| display:", rawToDisplay(raw).toFixed(3));
       }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // rAF lerp loop — glide displayAngle toward targetAngle
+  // rAF loop: lerp display angle toward dwell-mapped target
   useEffect(() => {
     let rafId: number;
     const tick = () => {
-      const diff = targetAngleRef.current - displayAngleRef.current;
+      const diff = targetDispRef.current - displayAngleRef.current;
       if (Math.abs(diff) > 0.0001) {
         displayAngleRef.current += diff * LERP;
-        const ga = displayAngleRef.current;
+        const ga     = displayAngleRef.current;
         const active = getActiveIndex(ga);
         if (active !== lastActiveRef.current) {
           lastActiveRef.current = active;
@@ -225,38 +214,50 @@ export default function HomeCanvas() {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  // progress: 0→1 over first full rotation; angle keeps growing for cycling
-  const progress = Math.min(Math.abs(angle) / PROGRESS_MAX_ANGLE, 1);
+  // progress: driven by RAW scroll angle — grows during animate phases AND dwell phases
+  // (frames continue to grow while display angle is locked, "zooming in" during dwell)
+  const progress = Math.min(rawAngle / PROGRESS_MAX_ANGLE, 1);
 
-  // Orbit center drifts rightward: cx = size.w/2 at start, size.w/2 + RX at progress=1
-  // → activeCX (cx − RX) travels from size.w/2 − RX to size.w/2 (panel center)
-  const cx = size.w / 2 + RX * progress;
+  // Active frame's current angular distance from the active slot
+  const activeFa            = angle + Math.PI + activeIndex * SLOT;
+  const activeD             = ((activeFa - Math.PI) % TWO_PI + TWO_PI) % TWO_PI;
+  const activeScale         = 0.5 + 0.5 * Math.cos(Math.min(activeD, TWO_PI - activeD));
+
+  // Breathing: orbit radius expands when active frame is at the slot (issue 4)
+  const dynamicRX  = BASE_RX + BREATHE * activeScale * progress;
+
+  // Orbit centre drifts right; formula chosen so:
+  //   activeCX = cx − dynamicRX = size.w/2 − BASE_RX*(1−p) + CX_OFFSET*p
+  //   → at p=1: activeCX = size.w/2 + CX_OFFSET  (issue 2 — shifted right of centre)
+  const cx = size.w / 2 + (BASE_RX + CX_OFFSET + BREATHE * activeScale) * progress;
   const cy = size.h / 2;
-  // Active frame center at the leftmost orbit point
-  const activeCX      = cx - RX;
-  // Active frame width at current progress (scale=1 at active slot)
-  const activeFrameW  = BASE_W + (ACTIVE_W - BASE_W) * progress;
+  const activeCX = cx - dynamicRX;
 
   const showText    = angle < 0.3;
   const textOpacity = showText ? Math.max(0, 1 - angle / 0.3) : 0;
-  // Metadata visible after 0.3 progress (~1 viewport scroll) — much lower than old 0.8
-  const showMeta = !showText && progress >= 0.3;
+
+  // Metadata: visible only when active frame is ≥80 % of full size (issue 1)
+  // effectiveSize = 1 only when progress=1 AND frame is at active slot (scale=1)
+  const effectiveSize = progress * activeScale;
+  const metaOpacity   = !showText && effectiveSize >= 0.8
+    ? Math.min(1, (effectiveSize - 0.8) / 0.2)
+    : 0;
+  const showMeta = metaOpacity > 0;
   const proj     = PROJECTS[activeIndex];
 
   return (
-    // 500vh gives ≥1.5 rotations at typical viewport heights
-    <div style={{ height: "500vh" }}>
-      {/* Sticky viewport — sidebar (position:fixed z-50) is outside this wrapper */}
+    // 700 vh ensures ≥7 full project cycles at typical viewport heights
+    <div style={{ height: "700vh" }}>
+      {/* Sidebar (position:fixed z-50) is outside this wrapper in layout.tsx */}
       <div
         ref={stickyRef}
         style={{ position: "sticky", top: 0, height: "100vh", overflow: "hidden" }}
       >
-        {/* ── Carousel frames — cosine-scaled by angular distance from active ─── */}
+        {/* ── Carousel frames ──────────────────────────────────────────────── */}
         {size.w > 0 &&
           PROJECTS.map((_, i) => {
-            // frame 0 at Math.PI (leftmost = active), evenly spaced 2π/N
-            const fa = angle + Math.PI + i * (TWO_PI / N);
-            const x  = cx + RX * Math.cos(fa);
+            const fa = angle + Math.PI + i * SLOT;
+            const x  = cx + dynamicRX * Math.cos(fa);
             const y  = cy + RY * Math.sin(fa);
             const { width, height, blur, opacity, zIndex } = getFrameProps(fa, progress);
             return (
@@ -266,163 +267,114 @@ export default function HomeCanvas() {
                   position: "absolute",
                   left: x - width / 2,
                   top: y - height / 2,
-                  width,
-                  height,
+                  width, height,
                   backgroundColor: "#C4C4C4",
                   filter: `blur(${blur}px)`,
-                  opacity,
-                  zIndex,
+                  opacity, zIndex,
+                  transition: "width 0.05s, height 0.05s", // soften size jitter
                 }}
               />
             );
           })}
 
-        {/* ── Positioning text — fades out on scroll, back at top ─────────────── */}
+        {/* ── Positioning text ─────────────────────────────────────────────── */}
         {textOpacity > 0 && (
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              width: 380,
-              textAlign: "center",
-              pointerEvents: "none",
-              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: 22,
-              fontWeight: 500,
-              letterSpacing: "-0.05em",
-              lineHeight: 1.4,
-              color: "#3A3A3A",
-              opacity: textOpacity,
-              zIndex: 15,
-            }}
-          >
+          <div style={{
+            position: "absolute", left: "50%", top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 380, textAlign: "center", pointerEvents: "none",
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontSize: 22, fontWeight: 500, letterSpacing: "-0.05em",
+            lineHeight: 1.4, color: "#3A3A3A",
+            opacity: textOpacity, zIndex: 15,
+          }}>
             Harsha is an{" "}
             <span style={{ color: "#F35900" }}>end-to-end designer</span>
             {". "}She thinks in systems, designs for people, and ships with AI.
           </div>
         )}
 
-        {/* ── Metadata panel — left of active frame, vertically centered ───────── */}
-        {showMeta && (
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: 220,
-              zIndex: 20,
-              animation: "metaFadeIn 0.3s ease",
-            }}
-          >
-            <div key={activeIndex} style={{ animation: "metaFadeIn 0.3s ease" }}>
-              <MetaRow label="Project" value={proj.name} link />
-              <MetaRow label="Client"  value={proj.client} />
-              <MetaRow label="Year"    value={proj.year} />
-              <MetaRow label="About"   value={proj.about} />
-              <MetaRow label="Tags"    value={proj.tags.join("  ")} mono />
-            </div>
+        {/* ── Metadata panel (left of active frame, fades with effectiveSize) ─ */}
+        <div style={{
+          position: "absolute", left: 0, top: "50%",
+          transform: "translateY(-50%)",
+          width: 220, zIndex: 20,
+          opacity: metaOpacity,
+          transition: "opacity 0.25s ease",
+          pointerEvents: showMeta ? "auto" : "none",
+        }}>
+          <div key={activeIndex} style={{ animation: metaOpacity > 0 ? "metaFadeIn 0.3s ease" : "none" }}>
+            <MetaRow label="Project" value={proj.name} link />
+            <MetaRow label="Client"  value={proj.client} />
+            <MetaRow label="Year"    value={proj.year} />
+            <MetaRow label="About"   value={proj.about} />
+            <MetaRow label="Tags"    value={proj.tags.join("  ")} mono />
           </div>
-        )}
+        </div>
 
-        {/* ── Arrows — centered above/below the active frame ───────────────────── */}
+        {/* ── Navigation arrows ────────────────────────────────────────────── */}
         {showMeta && size.w > 0 && (
           <>
             <button
-              onClick={() =>
-                window.scrollTo({
-                  top: Math.max(0, gaRef.current - TWO_PI / N) / SCROLL_SCALE,
-                  behavior: "smooth",
-                })
-              }
+              onClick={() => window.scrollTo({
+                // jump back by one project cycle in raw scroll space
+                top: Math.max(0, gaRef.current - CYCLE) / SCROLL_SCALE,
+                behavior: "smooth",
+              })}
               aria-label="Previous project"
               style={{
                 position: "absolute",
                 left: activeCX - ARROW_SIZE / 2,
                 top: cy - ACTIVE_H / 2 - ARROW_SIZE - 16,
-                width: ARROW_SIZE,
-                height: ARROW_SIZE,
-                borderRadius: "50%",
-                backgroundColor: "#0A0A0A",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                width: ARROW_SIZE, height: ARROW_SIZE,
+                borderRadius: "50%", backgroundColor: "#0A0A0A",
+                border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
                 zIndex: 30,
               }}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path
-                  d="M7 11V3M3 6.5l4-4 4 4"
-                  stroke="white"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M7 11V3M3 6.5l4-4 4 4"
+                  stroke="white" strokeWidth="1.7"
+                  strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
 
             <button
-              onClick={() =>
-                window.scrollTo({
-                  top: (gaRef.current + TWO_PI / N) / SCROLL_SCALE,
-                  behavior: "smooth",
-                })
-              }
+              onClick={() => window.scrollTo({
+                top: (gaRef.current + CYCLE) / SCROLL_SCALE,
+                behavior: "smooth",
+              })}
               aria-label="Next project"
               style={{
                 position: "absolute",
                 left: activeCX - ARROW_SIZE / 2,
                 top: cy + ACTIVE_H / 2 + 16,
-                width: ARROW_SIZE,
-                height: ARROW_SIZE,
-                borderRadius: "50%",
-                backgroundColor: "#0A0A0A",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                width: ARROW_SIZE, height: ARROW_SIZE,
+                borderRadius: "50%", backgroundColor: "#0A0A0A",
+                border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
                 zIndex: 30,
               }}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path
-                  d="M7 3v8M3 7.5l4 4 4-4"
-                  stroke="white"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M7 3v8M3 7.5l4 4 4-4"
+                  stroke="white" strokeWidth="1.7"
+                  strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </>
         )}
 
-        {/* ── SCROLL indicator ─────────────────────────────────────────────────── */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 32,
-            right: 32,
-            zIndex: 25,
-            fontFamily: "var(--font-dm-mono), monospace",
-            fontSize: 11,
-            letterSpacing: "-0.09em",
-            color: "#B5B5B5",
-            userSelect: "none",
-          }}
-        >
+        {/* ── SCROLL indicator ─────────────────────────────────────────────── */}
+        <div style={{
+          position: "absolute", bottom: 32, right: 32, zIndex: 25,
+          fontFamily: "var(--font-dm-mono), monospace",
+          fontSize: 11, letterSpacing: "-0.09em",
+          color: "#B5B5B5", userSelect: "none",
+        }}>
           SCROLL&nbsp;
-          <span
-            style={{
-              display: "inline-block",
-              animation: "scrollBounce 1.5s ease-in-out infinite",
-            }}
-          >
+          <span style={{ display: "inline-block", animation: "scrollBounce 1.5s ease-in-out infinite" }}>
             ↓
           </span>
         </div>
