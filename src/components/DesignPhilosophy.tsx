@@ -9,10 +9,22 @@ const rings = [
     radius: 60,
     speed: 0.00035,
     nodes: [
-      { n: "Ethical research", d: "Growing up as the outsider in every room taught me that people are not data points to extract. Every research interaction is a relationship. I approach it that way." },
-      { n: "Cross-cultural empathy", d: "I grew up Indian in Germany, studied in America, and move between cultures, languages, and ways of seeing. That multiplicity is not background noise — it is the work." },
-      { n: "The outsider lens", d: "Being the only one who looks like you sharpens your attention in ways comfort never could. You notice the gaps, the assumptions, the things everyone agrees to ignore." },
-      { n: "Care as material", d: "The products I make should feel like someone was thinking about you when they built them. Not just functional. Not just shipped. Actually considered." },
+      {
+        n: "Competitive dancer",
+        d: "I trained as a competitive dancer for years. That taught me something no classroom did — that talent is just the starting point. The people who get better are the ones who show up anyway, especially when it is not going well. I bring that to everything.",
+      },
+      {
+        n: "Pattern recognition",
+        d: "I have solved puzzles every day since I learned the rules of sudoku when I was 8 years old. My brain finds patterns before I consciously look for them — in data, in behavior, in systems. If you think that is not a real skill, challenge me to a game of Pipes.",
+      },
+      {
+        n: "Care as material",
+        d: "I want the things I make to feel like someone was actually thinking about you when they built them. Not just functional. Not just shipped. Considered.",
+      },
+      {
+        n: "Communication as superpower",
+        d: "I speak multiple languages, trained in Bharatanatyam, and grew up moving between cultures. Communication for me has never been just words — it is visual, physical, relational. I take real pride in my ability to find a genuine connection with almost anyone.",
+      },
     ],
   },
   {
@@ -21,10 +33,22 @@ const rings = [
     radius: 120,
     speed: 0.00022,
     nodes: [
-      { n: "Systems thinking", d: "An architecture degree taught me to hold a door handle and a city block in mind simultaneously. The world works in layers and multiplicities. I bring that into every digital strategy framework I build." },
-      { n: "Technical fluency", d: "A minor in computer science means I understand the constraints, the tradeoffs, and the craft underneath the design. I can build what I design — and that changes everything about how I think before I open Figma." },
-      { n: "Research rigor", d: "My MFA thesis was a year-long study inside genuinely ambiguous territory — intergenerational communication, care across distance, what technology misses about human connection. I was trained to ask better questions, not faster ones." },
-      { n: "Responsible AI", d: "I was in CS school when ML was first getting loud. I attended early seminars on environmental cost and ethical risk. I understand there is a line — and I design like crossing it has consequences." },
+      {
+        n: "Systems thinking",
+        d: "Architecture school teaches you to hold a door handle and a city block in your head at the same time. I have never been able to look at a single screen without seeing the system around it.",
+      },
+      {
+        n: "Technical fluency",
+        d: "I can build what I design. That changes everything about how I think before I ever open Figma — I know what the constraint actually is, not just what it looks like from the outside.",
+      },
+      {
+        n: "Research rigor",
+        d: "My thesis was a year inside genuinely ambiguous territory — intergenerational care, what technology misses about human connection. I was trained to ask better questions, not faster ones.",
+      },
+      {
+        n: "Responsible AI",
+        d: "I was in CS school when ML first got loud. I sat in the early seminars about environmental cost and ethical risk. I understood then that there was a line. I still design like crossing it has consequences.",
+      },
     ],
   },
   {
@@ -33,10 +57,22 @@ const rings = [
     radius: 175,
     speed: 0.00012,
     nodes: [
-      { n: "Designing for consequences", d: "We are in the consequence business. Things are deployed faster than ever — but speed is not the same as solving problems. The question I return to is not what can we build, but what happens when we do. That question does not have a comfortable answer. I do not think it should." },
-      { n: "Digital loneliness", d: "Technology promised connection and often accelerated distance instead. I design for the gap between what platforms measure and what people actually need." },
-      { n: "AI without care", d: "Speed without humanity is noise. The most important design question right now is not what AI can do — it is what it should do, and for whom, and at what cost." },
-      { n: "The pace problem", d: "Products ship faster than people change. The humans using our software are the same people they have always been — same needs, same vulnerabilities. We keep designing like they are not." },
+      {
+        n: "Designing for consequences",
+        d: "When pursuing my MFA, Professor Allan Chochinov taught me that designers are in the consequence business. The question I keep returning to is not what can we build — it is what happens after we do. That question does not have a comfortable answer. I do not think it should.",
+      },
+      {
+        n: "Digital loneliness",
+        d: "We built platforms optimized for engagement and got isolation instead. The gap between what technology measures and what people actually need is where most of the real design work lives.",
+      },
+      {
+        n: "AI without care",
+        d: "Speed without humanity is just noise at scale. The most important question right now is not what AI can do. It is what it should do, and for whom, and who is paying the cost when we get it wrong.",
+      },
+      {
+        n: "The pace problem",
+        d: "Products ship faster than people change. The humans using our software are the same people they have always been — same needs, same fears, same need to feel like someone thought about them. We keep designing like they are not.",
+      },
     ],
   },
 ];

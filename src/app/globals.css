@@ -54,4 +54,10 @@
     background: #F35900;
     color: #FFFFFF;
   }
+
+  /* Neutral selection inside the about bio so orange keyword spans stay distinct */
+  .about-bio ::selection {
+    background: rgba(0,0,0,0.08);
+    color: inherit;
+  }
 }

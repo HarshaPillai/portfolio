@@ -32,8 +32,9 @@ export default function AboutPage() {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* Left column */}
       <div
+        className="about-bio"
         style={{
-          width: 480,
+          width: 580,
           flexShrink: 0,
           height: "100vh",
           overflowY: "auto",
