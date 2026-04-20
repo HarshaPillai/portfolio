@@ -107,7 +107,7 @@ export default function RootLayout({
           </a>
         </div>
 
-        <div style={{ marginLeft: "var(--sidebar-width)" }}>{children}</div>
+        <div className="app-content" style={{ marginLeft: "var(--sidebar-width)" }}>{children}</div>
       </body>
     </html>
   );

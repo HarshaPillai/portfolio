@@ -32,6 +32,30 @@
   to   { opacity: 1; }
 }
 
+/* ─── Responsive: mobile (≤768px) ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-sidebar  { display: none !important; }
+  .app-content  { margin-left: 0 !important; }
+
+  .about-layout {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .about-bio {
+    width: 100% !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    flex-shrink: unset !important;
+  }
+  .about-constellation {
+    width: 100% !important;
+    flex: none !important;
+    height: 400px !important;
+    min-height: 400px !important;
+  }
+}
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;

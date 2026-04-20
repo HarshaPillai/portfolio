@@ -29,16 +29,16 @@ const labelStyle: React.CSSProperties = {
 
 export default function AboutPage() {
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <div className="about-layout" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* Left column */}
       <div
         className="about-bio"
         style={{
-          width: 580,
+          width: 540,
           flexShrink: 0,
           height: "100vh",
           overflowY: "auto",
-          padding: "60px 60px 60px 60px",
+          padding: "60px 36px 60px 60px",
           boxSizing: "border-box",
         }}
       >
@@ -63,30 +63,32 @@ export default function AboutPage() {
         {/* Bio paragraphs */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <p style={bodyStyle}>
-            Born in Switzerland, raised in Germany, of Indian heritage — she
-            learned early to meet people where they are, not where she expects
-            them to be. It lives in every user interview, every design decision,
-            every moment she tries to build something that actually fits.
+            Born in Switzerland, raised in Germany, and of Indian heritage, she
+            naturally moves between cultures, languages, and ways of seeing the
+            world. This ever-changing perspective shaped her approach, deeply
+            considering the systems we live in, and most importantly, designing
+            with care for those at the heart of it all.
           </p>
           <p style={bodyStyle}>
-            When she found <O>product design</O>, she stopped looking for what
-            she was supposed to do next. Three years in, she still loves
-            everything about it — the <O>strategy</O>, the <O>craft</O>, the
-            moment something gets into someone&apos;s hands and actually works.
-            She wants to be close to the thing being built and close to the
-            people it is being built for.
+            With 3+ years in product, she still loves everything about it — the{" "}
+            <O>strategy</O>, the <O>craft</O>, the moment something gets into
+            someone&apos;s hands and actually works. She wants to be close to the
+            thing being built and close to the people it is being built for.
           </p>
           <p style={bodyStyle}>
             What she cares about most is what gets built in the first place, and
             why. In a world where anything can be made, it is not a question of
-            can we. It is <O>should we</O>. Her professor and mentor Allan
+            can we but rather <O>should we</O>. Her professor and mentor Allan
             Chochinov always reminded her that designers are in the{" "}
             <O>consequence business</O>, and she tries not to forget that.
           </p>
           <p style={bodyStyle}>
-            Polylingual, perpetually curious, currently sharpening her{" "}
-            <O>Mandarin</O>. Ultimately, trying to live as many lives as
-            possible in this one.
+            Outside of design, you&apos;ll find her throwing punches in kickboxing
+            class, rooting for the NY Knicks, or keeping her NYT Connections
+            streak alive.
+          </p>
+          <p style={bodyStyle}>
+            Ultimately, trying to live as many lives as possible in this one.
           </p>
         </div>
 
@@ -230,7 +232,7 @@ export default function AboutPage() {
       </div>
 
       {/* Right column — DesignPhilosophy constellation */}
-      <div style={{ flex: 1, height: "100vh", overflow: "hidden" }}>
+      <div className="about-constellation" style={{ flex: 1, height: "100vh", overflow: "hidden" }}>
         <DesignPhilosophy />
       </div>
     </div>
