@@ -6,7 +6,7 @@ const rings = [
   {
     label: "Identity",
     desc: "Shaped by living between worlds",
-    radius: 88,
+    radius: 60,
     speed: 0.00035,
     nodes: [
       { n: "Ethical research", d: "Growing up as the outsider in every room taught me that people are not data points to extract. Every research interaction is a relationship. I approach it that way." },
@@ -18,7 +18,7 @@ const rings = [
   {
     label: "Academic",
     desc: "Trained to think at scale",
-    radius: 172,
+    radius: 120,
     speed: 0.00022,
     nodes: [
       { n: "Systems thinking", d: "An architecture degree taught me to hold a door handle and a city block in mind simultaneously. The world works in layers and multiplicities. I bring that into every digital strategy framework I build." },
@@ -30,7 +30,7 @@ const rings = [
   {
     label: "Condition",
     desc: "Reckoning with what we set in motion",
-    radius: 252,
+    radius: 175,
     speed: 0.00012,
     nodes: [
       { n: "Designing for consequences", d: "We are in the consequence business. Things are deployed faster than ever — but speed is not the same as solving problems. The question I return to is not what can we build, but what happens when we do. That question does not have a comfortable answer. I do not think it should." },
@@ -64,8 +64,9 @@ export default function DesignPhilosophy() {
   const lastTimeRef  = useRef<number>(0);
   const mouseRef     = useRef({ x: -9999, y: -9999 });
   const seenRef      = useRef<Set<string>>(new Set());
-  const nodePositionsRef = useRef<{ x: number; y: number }[][]>([[], [], []]);
-  const starsRef     = useRef<StarDef[]>([]);
+  const nodePositionsRef  = useRef<{ x: number; y: number }[][]>([[], [], []]);
+  const starsRef          = useRef<StarDef[]>([]);
+  const logicalSizeRef    = useRef({ w: 0, h: 0 });
 
   const [nodeHover, setNodeHover] = useState<NodeHover | null>(null);
   const [ringHover, setRingHover] = useState<RingHover | null>(null);
@@ -76,8 +77,8 @@ export default function DesignPhilosophy() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const W  = canvas.width;
-    const H  = canvas.height;
+    const W  = logicalSizeRef.current.w;
+    const H  = logicalSizeRef.current.h;
     const cx = W / 2;
     const cy = H / 2;
 
@@ -201,18 +202,15 @@ export default function DesignPhilosophy() {
 
     // Center circle
     ctx.beginPath();
-    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-    ctx.fillStyle   = "#FFFFFF";
+    ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+    ctx.fillStyle = "#000000";
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.12)";
-    ctx.lineWidth   = 0.8;
-    ctx.stroke();
+    ctx.fillStyle    = "#ffffff";
     ctx.font         = "8px 'DM Mono', monospace";
-    ctx.fillStyle    = "#999999";
     ctx.textAlign    = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("DESIGN",      cx, cy - 4);
-    ctx.fillText("PHILOSOPHY",  cx, cy + 5);
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("DESIGN",     cx, cy - 4);
+    ctx.fillText("PHILOSOPHY", cx, cy + 7);
 
     rafRef.current = requestAnimationFrame(draw);
   }, []);
@@ -246,8 +244,8 @@ export default function DesignPhilosophy() {
 
     if (!foundNode) {
       setNodeHover(null);
-      const cx    = canvas.width / 2;
-      const cy    = canvas.height / 2;
+      const cx    = logicalSizeRef.current.w / 2;
+      const cy    = logicalSizeRef.current.h / 2;
       const distC = Math.hypot(mx - cx, my - cy);
       let foundRing = false;
       for (let ri = 0; ri < rings.length; ri++) {
@@ -274,19 +272,25 @@ export default function DesignPhilosophy() {
     if (!container || !canvas) return;
 
     const resize = () => {
-      const W = container.clientWidth;
-      const H = container.clientHeight;
-      canvas.width  = W;
-      canvas.height = H;
+      const dpr = window.devicePixelRatio || 1;
+      const W   = container.clientWidth;
+      const H   = container.clientHeight;
+      logicalSizeRef.current = { w: W, h: H };
+      canvas.width        = W * dpr;
+      canvas.height       = H * dpr;
+      canvas.style.width  = W + "px";
+      canvas.style.height = H + "px";
+      const ctx2 = canvas.getContext("2d");
+      if (ctx2) ctx2.scale(dpr, dpr);
 
-      // Generate stars outside outermost ring
+      // Generate stars outside outermost ring (in logical coords)
       const cx = W / 2;
       const cy = H / 2;
       const stars: StarDef[] = [];
       let attempts = 0;
       while (stars.length < 10 && attempts < 400) {
         const angle = Math.random() * Math.PI * 2;
-        const dist  = 270 + Math.random() * 100;
+        const dist  = 190 + Math.random() * 80;
         const sx    = cx + Math.cos(angle) * dist;
         const sy    = cy + Math.sin(angle) * dist;
         if (sx > 4 && sx < W - 4 && sy > 4 && sy < H - 4) {
@@ -310,10 +314,9 @@ export default function DesignPhilosophy() {
 
   // Popup position with edge-flip
   const getPopupStyle = (canvasX: number, canvasY: number): React.CSSProperties => {
-    const canvas = canvasRef.current;
-    if (!canvas) return {};
-    const W = canvas.width;
-    const H = canvas.height;
+    if (!logicalSizeRef.current.w) return {};
+    const W = logicalSizeRef.current.w;
+    const H = logicalSizeRef.current.h;
     const POPUP_W = 248;
     const POPUP_H = 160;
     const GAP     = 16;
