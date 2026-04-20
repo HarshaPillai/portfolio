@@ -67,26 +67,10 @@ const ASPECT       = 0.667;
 const META_THRESH  = 0.92;
 const META_W       = 220;
 
-// Intro state constants
-const INTRO_W       = 200;
-const INTRO_H       = 140;
-const INTRO_BLUR    = 4;
-const INTRO_OPACITY = 0.5;
-// Phase 1 (0 → MOVE_END):  thumbnails slide to orbit slots at intro size, text fades
-// Phase 2 (MOVE_END → SCALE_END): thumbnails scale from intro size to orbit size
-const MOVE_END  = 0.10;
-const SCALE_END = 0.15; // orbit animation begins here
-
-// Scattered positions as fraction of canvas (left, top = center of thumbnail)
-const INTRO_POSITIONS = [
-  { left: 0.28, top: 0.12 },
-  { left: 0.43, top: 0.08 },
-  { left: 0.18, top: 0.33 },
-  { left: 0.62, top: 0.28 },
-  { left: 0.26, top: 0.60 },
-  { left: 0.43, top: 0.72 },
-  { left: 0.62, top: 0.58 },
-];
+// Intro state constants — preserved for when intro is re-added
+// const INTRO_W = 200; const INTRO_H = 140; const INTRO_BLUR = 4; const INTRO_OPACITY = 0.5;
+// const INTRO_POSITIONS = [{ left:0.28, top:0.12 },{ left:0.43, top:0.08 },{ left:0.18, top:0.33 },
+//   { left:0.62, top:0.28 },{ left:0.26, top:0.60 },{ left:0.43, top:0.72 },{ left:0.62, top:0.58 }];
 
 function MetaRow({
   label, value, mono,
@@ -122,11 +106,10 @@ function MetaRow({
 }
 
 export default function HomeCanvas() {
-  const outerRef      = useRef<HTMLDivElement>(null);
-  const stickyRef     = useRef<HTMLDivElement>(null);
-  const frameRefs     = useRef<(HTMLDivElement | null)[]>([]);
-  const metaRef       = useRef<HTMLDivElement>(null);
-  const introTextRef  = useRef<HTMLDivElement>(null);
+  const outerRef        = useRef<HTMLDivElement>(null);
+  const stickyRef       = useRef<HTMLDivElement>(null);
+  const frameRefs       = useRef<(HTMLDivElement | null)[]>([]);
+  const metaRef         = useRef<HTMLDivElement>(null);
   const scrollProgRef   = useRef(0);
   const lastActiveI     = useRef(-1);
   const debugEllipseRef = useRef<SVGEllipseElement>(null);
@@ -143,11 +126,19 @@ export default function HomeCanvas() {
     function render(scrollProg: number) {
       const w  = sticky.offsetWidth;
       const h  = sticky.offsetHeight;
-      // cx/cy are in container-relative coordinates (thumbnails are position:absolute
-      // inside sticky, so (0,0) is sticky's top-left corner, not the viewport).
+      // Coordinates are container-relative: (0,0) = sticky div top-left corner.
       const cx = w * 0.60;
       const cy = h * 0.50;
 
+      // One-time diagnostic on first call
+      if (frameCountRef.current === 0) {
+        console.log("ORBIT CONSTANTS:", { cx: cx.toFixed(0), cy: cy.toFixed(0), radiusX: RADIUS_X, radiusY: RADIUS_Y, containerW: w, containerH: h });
+        console.log("ANGLES:", PROJECTS.map((_, i) => ((i / N) * TWO_PI).toFixed(3)));
+        console.log("POSITIONS:", PROJECTS.map((_, i) => {
+          const angle = (i / N) * TWO_PI;
+          return { x: (cx + Math.cos(angle) * RADIUS_X).toFixed(0), y: (cy + Math.sin(angle) * RADIUS_Y).toFixed(0) };
+        }));
+      }
       frameCountRef.current++;
 
       // Update debug ellipse overlay
@@ -159,120 +150,55 @@ export default function HomeCanvas() {
         dbgEl.setAttribute("ry", String(RADIUS_Y));
       }
 
-      let dbgX0 = 0, dbgY0 = 0; // center of thumbnail 0 (populated below)
+      // scrollProg 0→1 drives 0→1.25 full rotations
+      const orbitRp = scrollProg * 1.25;
 
-      if (scrollProg < SCALE_END) {
-        // ── Phase 1 (0 → MOVE_END): slide to orbit slots, hold intro size ────
-        // ── Phase 2 (MOVE_END → SCALE_END): at orbit slots, scale to orbit size
-        const tMove  = Math.min(scrollProg / MOVE_END, 1);
-        const eMove  = tMove * tMove * (3 - 2 * tMove); // smoothstep
+      let bestP = -1, bestI = 0;
+      let bestX = 0, bestY = 0, bestW = 0, bestH = 0;
+      let dbgX0 = 0, dbgY0 = 0;
 
-        const tScale = scrollProg >= MOVE_END
-          ? (scrollProg - MOVE_END) / (SCALE_END - MOVE_END)
-          : 0;
-        const eScale = tScale * tScale * (3 - 2 * tScale); // smoothstep
+      for (let i = 0; i < N; i++) {
+        const ang       = (i / N) * TWO_PI + orbitRp * TWO_PI;
+        const x         = cx + Math.cos(ang) * RADIUS_X;
+        const y         = cy + Math.sin(ang) * RADIUS_Y;
+        if (i === 0) { dbgX0 = x; dbgY0 = y; }
+        const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
+        const width     = WIDTH_MIN + proximity * WIDTH_RANGE;
+        const height    = width * ASPECT;
 
-        for (let i = 0; i < N; i++) {
-          const orbitAng  = (i / N) * TWO_PI; // orbit angle at rotProgress = 0
-          const orbitX    = cx + Math.cos(orbitAng) * RADIUS_X;
-          const orbitY    = cy + Math.sin(orbitAng) * RADIUS_Y;
-          const proximity = (Math.cos(orbitAng - ACTIVE_ANGLE) + 1) / 2;
-          const orbitW    = WIDTH_MIN + proximity * WIDTH_RANGE;
-          const orbitH    = orbitW * ASPECT;
-          const orbitBlur = (1 - proximity) * 8;
-          const orbitOp   = 0.35 + proximity * 0.65;
-
-          const introX = INTRO_POSITIONS[i].left * w;
-          const introY = INTRO_POSITIONS[i].top * h;
-
-          // Position driven by phase 1 easing (all 7 arrive simultaneously at MOVE_END)
-          const x = introX + (orbitX - introX) * eMove;
-          const y = introY + (orbitY - introY) * eMove;
-          if (i === 0) { dbgX0 = x; dbgY0 = y; }
-
-          // Size/blur/opacity driven by phase 2 easing (held at intro values until MOVE_END)
-          const width  = INTRO_W + (orbitW - INTRO_W) * eScale;
-          const height = INTRO_H + (orbitH - INTRO_H) * eScale;
-          const blur   = INTRO_BLUR + (orbitBlur - INTRO_BLUR) * eScale;
-          const op     = INTRO_OPACITY + (orbitOp - INTRO_OPACITY) * eScale;
-
-          const el = frameRefs.current[i];
-          if (el) {
-            gsap.set(el, {
-              x: x - width / 2,
-              y: y - height / 2,
-              width,
-              height,
-              filter: `blur(${blur}px)`,
-              opacity: op,
-              zIndex: Math.round(proximity * 10),
-            });
-          }
-        }
-
-        // Intro text fades during phase 1 (gone by MOVE_END)
-        const textEl = introTextRef.current;
-        if (textEl) {
-          textEl.style.opacity = String(Math.max(0, 1 - scrollProg / MOVE_END));
-        }
-
-        // Metadata hidden during intro
-        const metaEl = metaRef.current;
-        if (metaEl) gsap.set(metaEl, { opacity: 0, pointerEvents: "none" });
-
-      } else {
-        // ── Orbit animation ───────────────────────────────────────────────────
-        const orbitRp = ((scrollProg - SCALE_END) / (1 - SCALE_END)) * 1.25;
-
-        const textEl = introTextRef.current;
-        if (textEl) textEl.style.opacity = "0";
-
-        let bestP = -1, bestI = 0;
-        let bestX = 0, bestY = 0, bestW = 0, bestH = 0;
-
-        for (let i = 0; i < N; i++) {
-          const ang       = (i / N) * TWO_PI + orbitRp * TWO_PI;
-          const x         = cx + Math.cos(ang) * RADIUS_X;
-          const y         = cy + Math.sin(ang) * RADIUS_Y;
-          if (i === 0) { dbgX0 = x; dbgY0 = y; }
-          const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
-          const width     = WIDTH_MIN + proximity * WIDTH_RANGE;
-          const height    = width * ASPECT;
-
-          const el = frameRefs.current[i];
-          if (el) {
-            gsap.set(el, {
-              x: x - width / 2,
-              y: y - height / 2,
-              width,
-              height,
-              filter: `blur(${(1 - proximity) * 8}px)`,
-              opacity: 0.35 + proximity * 0.65,
-              zIndex: Math.round(proximity * 10),
-            });
-          }
-
-          if (proximity > bestP) {
-            bestP = proximity; bestI = i;
-            bestX = x; bestY = y; bestW = width; bestH = height;
-          }
-        }
-
-        if (bestI !== lastActiveI.current) {
-          lastActiveI.current = bestI;
-          setActiveIndex(bestI);
-        }
-
-        const metaEl = metaRef.current;
-        if (metaEl) {
-          const mo = bestP > META_THRESH ? (bestP - META_THRESH) / (1 - META_THRESH) : 0;
-          gsap.set(metaEl, {
-            opacity: mo,
-            x: Math.max(0, bestX - bestW / 2 - META_W - 16),
-            y: bestY - bestH / 2,
-            pointerEvents: mo > 0 ? "auto" : "none",
+        const el = frameRefs.current[i];
+        if (el) {
+          gsap.set(el, {
+            x: x - width / 2,
+            y: y - height / 2,
+            width,
+            height,
+            filter: `blur(${(1 - proximity) * 8}px)`,
+            opacity: 0.35 + proximity * 0.65,
+            zIndex: Math.round(proximity * 10),
           });
         }
+
+        if (proximity > bestP) {
+          bestP = proximity; bestI = i;
+          bestX = x; bestY = y; bestW = width; bestH = height;
+        }
+      }
+
+      if (bestI !== lastActiveI.current) {
+        lastActiveI.current = bestI;
+        setActiveIndex(bestI);
+      }
+
+      const metaEl = metaRef.current;
+      if (metaEl) {
+        const mo = bestP > META_THRESH ? (bestP - META_THRESH) / (1 - META_THRESH) : 0;
+        gsap.set(metaEl, {
+          opacity: mo,
+          x: Math.max(0, bestX - bestW / 2 - META_W - 16),
+          y: bestY - bestH / 2,
+          pointerEvents: mo > 0 ? "auto" : "none",
+        });
       }
 
       if (frameCountRef.current % 10 === 0) {
@@ -331,32 +257,6 @@ export default function HomeCanvas() {
             }}
           />
         ))}
-
-        {/* Intro text — centered, fades out as orbit begins */}
-        <div
-          ref={introTextRef}
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 380,
-            textAlign: "center",
-            pointerEvents: "none",
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 22,
-            fontWeight: 500,
-            letterSpacing: "-0.05em",
-            lineHeight: 1.4,
-            color: "#3A3A3A",
-            opacity: 0,
-            zIndex: 15,
-          }}
-        >
-          Harsha is an{" "}
-          <span style={{ color: "#E8420A" }}>end-to-end designer</span>
-          {". "}She thinks in systems, designs for people, and ships with AI.
-        </div>
 
         {/* Metadata panel — GSAP controls position + opacity, React controls content */}
         <div
