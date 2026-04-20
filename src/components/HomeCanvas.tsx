@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -11,6 +12,7 @@ const PROJECTS = [
     year: "2025",
     about: "End-to-end design system and IA for a residential GC operations platform",
     tags: ["#SAAS", "#AI", "#CLIENT"],
+    slug: "stealth-field-ops",
   },
   {
     name: "Stealth Invoicing Platform",
@@ -18,6 +20,7 @@ const PROJECTS = [
     year: "2025",
     about: "Contractor and client portal for construction job lifecycle management",
     tags: ["#SAAS", "#FINTECH", "#CLIENT"],
+    slug: "stealth-invoicing",
   },
   {
     name: "B2B Operations Platform",
@@ -25,6 +28,7 @@ const PROJECTS = [
     year: "2024",
     about: "Workflow automation and AI command center for real estate operations",
     tags: ["#SAAS", "#B2B", "#CLIENT"],
+    slug: "b2b-ops",
   },
   {
     name: "Dream-Match",
@@ -32,6 +36,7 @@ const PROJECTS = [
     year: "2025",
     about: "Reimagining career exploration for high schoolers through values-based matching",
     tags: ["#ACADEMIC", "#UX", "#RESEARCH"],
+    slug: "dream-match",
   },
   {
     name: "Care+",
@@ -39,6 +44,7 @@ const PROJECTS = [
     year: "2024",
     about: "Empowering nurses to reclaim time through a community program connecting them with high school student volunteers",
     tags: ["#ACADEMIC", "#SERVICE DESIGN", "#HEALTH"],
+    slug: "care-plus",
   },
   {
     name: "Strava x Recover Athletics",
@@ -46,6 +52,7 @@ const PROJECTS = [
     year: "2023",
     about: "Integrating athlete rehabilitation features into Strava through an imagined partnership with Recover Athletics",
     tags: ["#ACADEMIC", "#PRODUCT DESIGN", "#HEALTH"],
+    slug: "strava-recover",
   },
   {
     name: "Lost in Translation",
@@ -53,6 +60,7 @@ const PROJECTS = [
     year: "2025",
     about: "Rethinking expressions of care across distances — exploring intergenerational and intercultural communication within Asian immigrant families",
     tags: ["#THESIS", "#RESEARCH", "#SERVICE DESIGN"],
+    slug: "lost-in-translation",
   },
 ];
 
@@ -118,6 +126,13 @@ export default function HomeCanvas() {
   const scrollProgRef = useRef(0);
   const lastActiveI   = useRef(-1);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [metaHovered, setMetaHovered] = useState(false);
+  const [cursorPos, setCursorPos] = useState({ x: -999, y: -999 });
+  const router = useRouter();
+
+  const handleStickyMouseMove = useCallback((e: React.MouseEvent) => {
+    setCursorPos({ x: e.clientX, y: e.clientY });
+  }, []);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -239,6 +254,7 @@ export default function HomeCanvas() {
     <div ref={outerRef} style={{ height: "500vh" }}>
       <div
         ref={stickyRef}
+        onMouseMove={handleStickyMouseMove}
         style={{ position: "sticky", top: 0, height: "100vh", overflow: "hidden" }}
       >
         {/* Carousel frames */}
@@ -286,6 +302,9 @@ export default function HomeCanvas() {
         {/* Metadata panel */}
         <div
           ref={metaRef}
+          onClick={() => router.push(`/projects/${proj.slug}`)}
+          onMouseEnter={() => setMetaHovered(true)}
+          onMouseLeave={() => setMetaHovered(false)}
           style={{
             position: "absolute",
             left: 0,
@@ -295,6 +314,7 @@ export default function HomeCanvas() {
             opacity: 0,
             pointerEvents: "none",
             zIndex: 20,
+            cursor: "none",
           }}
         >
           <div key={activeIndex} style={{ animation: "metaFadeIn 0.3s ease" }}>
@@ -304,6 +324,30 @@ export default function HomeCanvas() {
             <MetaRow label="About"   value={proj.about} />
             <MetaRow label="Tags"    value={proj.tags.join("  ")} mono />
           </div>
+        </div>
+
+        {/* Custom "View Case Study" cursor pill */}
+        <div
+          style={{
+            position: "fixed",
+            left: cursorPos.x,
+            top: cursorPos.y,
+            transform: "translate(-50%, -50%)",
+            pointerEvents: "none",
+            zIndex: 50,
+            opacity: metaHovered ? 1 : 0,
+            transition: "opacity 0.15s",
+            backgroundColor: "#1a1a1a",
+            color: "#ffffff",
+            fontFamily: "var(--font-dm-mono), monospace",
+            fontSize: 11,
+            letterSpacing: "-0.02em",
+            padding: "9px 20px",
+            borderRadius: 100,
+            whiteSpace: "nowrap",
+          }}
+        >
+          View Case Study ↗
         </div>
 
         {/* Scroll indicator */}
