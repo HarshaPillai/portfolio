@@ -55,3 +55,23 @@ export const projectBySlugQuery = groq`
 export const projectSlugsQuery = groq`
   *[_type == "project"] { "slug": slug.current }
 `;
+
+// ─── v2 queries (new schema) ──────────────────────────────────────────────────
+
+export const getAllProjects = groq`
+  *[_type == "project"] | order(order asc) {
+    _id, title, slug, tagline, year, client, tags, order
+  }
+`;
+
+export const getProjectBySlug = groq`
+  *[_type == "project" && slug.current == $slug][0] {
+    _id, title, slug, tagline, year, client, tags, heroImage, order,
+    hook, context, challenge, keyDecisions, outcome, selectedScreens,
+    "nextProject": nextProject->{ title, slug }
+  }
+`;
+
+export const getAllProjectSlugs = groq`
+  *[_type == "project"] { "slug": slug.current }
+`;

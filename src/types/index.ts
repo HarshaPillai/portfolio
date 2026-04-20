@@ -56,3 +56,45 @@ export type ProjectListItem = Pick<
   Project,
   "_id" | "title" | "slug" | "year" | "duration" | "role" | "type" | "nda" | "thumbnail" | "hook"
 >;
+
+// ─── v2 types (new schema) ────────────────────────────────────────────────────
+
+export type SanityImageWithAlt = {
+  _type: "image";
+  asset: { _ref: string; _type: "reference" };
+  alt?: string;
+  hotspot?: { x: number; y: number; height: number; width: number };
+};
+
+export type ProjectV2 = {
+  _id: string;
+  title: string;
+  slug: { current: string };
+  tagline?: string;
+  year?: number;
+  client?: string;
+  tags?: string[];
+  heroImage?: SanityImageWithAlt;
+  order?: number;
+  hook?: { headline: string; body: string };
+  context?: { headline: string; body: string };
+  challenge?: {
+    headline: string;
+    body: string;
+    pullQuote?: string;
+    pullQuoteAttribution?: string;
+  };
+  keyDecisions?: Array<{
+    _key: string;
+    decisionNumber: string;
+    headline: string;
+    body: string;
+  }>;
+  outcome?: { headline: string; body: string };
+  selectedScreens?: Array<{
+    _key: string;
+    image?: SanityImageWithAlt;
+    caption?: string;
+  }>;
+  nextProject?: { title: string; slug: { current: string } };
+};

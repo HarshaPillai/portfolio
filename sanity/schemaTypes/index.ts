@@ -1,4 +1,4 @@
-import { projectType } from "./project";
+import { project } from "../schemas/project";
 import { labItemType } from "./labItem";
 
-export const schemaTypes = [projectType, labItemType];
+export const schemaTypes = [project, labItemType];
