@@ -32,12 +32,6 @@
   to   { opacity: 1; }
 }
 
-/* ─── Testimonial quote fall-in ─────────────────────────────────────────────── */
-@keyframes quoteFallIn {
-  from { transform: translateY(-22px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
-
 /* ─── Responsive: mobile (≤768px) ───────────────────────────────────────────── */
 @media (max-width: 768px) {
   .app-sidebar  { display: none !important; }
