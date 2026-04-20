@@ -34,8 +34,7 @@ export default function AboutPage() {
       <div
         className="about-bio"
         style={{
-          width: 540,
-          flexShrink: 0,
+          flex: "0 0 60%",
           height: "100vh",
           overflowY: "auto",
           padding: "60px 36px 60px 60px",
@@ -232,7 +231,7 @@ export default function AboutPage() {
       </div>
 
       {/* Right column — DesignPhilosophy constellation */}
-      <div className="about-constellation" style={{ flex: 1, height: "100vh", overflow: "hidden" }}>
+      <div className="about-constellation" style={{ flex: "0 0 40%", height: "100vh", overflow: "hidden" }}>
         <DesignPhilosophy />
       </div>
     </div>

@@ -127,7 +127,6 @@ export default function HomeCanvas() {
     function render(scrollProg: number) {
       const w  = sticky.offsetWidth;
       const h  = sticky.offsetHeight;
-      const cx = w * 0.62;
       const cy = h * 0.50;
 
       // Continuous rotation across the full scroll range
@@ -137,6 +136,10 @@ export default function HomeCanvas() {
       const introT  = Math.min(scrollProg / INTRO_END, 1);
       const ease    = introT * introT * (3 - 2 * introT); // smoothstep
       const isIntro = scrollProg < INTRO_END;
+
+      // cx lerps from screen-center (intro) to right-shifted (orbit)
+      // so the active thumbnail has clear space left for the metadata panel
+      const cx = w * (0.50 + 0.25 * ease); // w*0.50 → w*0.75
 
       // Intro text: visible at 0, gone by scrollProg 0.10
       const textEl = introTextRef.current;

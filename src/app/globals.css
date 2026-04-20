@@ -43,14 +43,16 @@
     overflow: visible !important;
   }
   .about-bio {
+    flex: 1 1 100% !important;
     width: 100% !important;
+    max-width: 100% !important;
     height: auto !important;
     overflow-y: visible !important;
-    flex-shrink: unset !important;
   }
   .about-constellation {
-    width: 100% !important;
     flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
     height: 400px !important;
     min-height: 400px !important;
   }
