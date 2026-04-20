@@ -56,16 +56,18 @@ const PROJECTS = [
   },
 ];
 
-const N            = PROJECTS.length;
-const TWO_PI       = Math.PI * 2;
-const RADIUS_X     = 560;
-const RADIUS_Y     = 300;
-const ACTIVE_ANGLE = Math.PI; // 9 o'clock (leftmost)
-const WIDTH_MIN    = 100;
-const WIDTH_RANGE  = 320; // 100 + 320 = 420 at full proximity
-const ASPECT       = 0.667;
-const META_THRESH  = 0.92;
-const META_W       = 280;
+const N              = PROJECTS.length;
+const TWO_PI         = Math.PI * 2;
+const RADIUS_X_START = 320;
+const RADIUS_X_END   = 700;
+const RADIUS_Y_START = 180;
+const RADIUS_Y_END   = 360;
+const ACTIVE_ANGLE   = Math.PI; // 9 o'clock (leftmost)
+const WIDTH_MIN      = 100;
+const WIDTH_RANGE    = 320; // 100 + 320 = 420 at full proximity
+const ASPECT         = 0.667;
+const META_THRESH    = 0.92;
+const META_W         = 280;
 
 // Intro state — thumbnails start on-orbit at uniform small size
 const INTRO_W       = 180;
@@ -139,7 +141,9 @@ export default function HomeCanvas() {
 
       // cx lerps from screen-center (intro) to right-shifted (orbit)
       // so the active thumbnail has clear space left for the metadata panel
-      const cx = w * (0.50 + 0.25 * ease); // w*0.50 → w*0.75
+      const cx = w * (0.50 + 0.60 * ease); // w*0.50 → w*1.10
+      const rx = RADIUS_X_START + (RADIUS_X_END - RADIUS_X_START) * ease;
+      const ry = RADIUS_Y_START + (RADIUS_Y_END - RADIUS_Y_START) * ease;
 
       // Intro text: visible at 0, gone by scrollProg 0.10
       const textEl = introTextRef.current;
@@ -152,8 +156,8 @@ export default function HomeCanvas() {
 
       for (let i = 0; i < N; i++) {
         const ang       = (i / N) * TWO_PI + orbitRp * TWO_PI;
-        const x         = cx + Math.cos(ang) * RADIUS_X;
-        const y         = cy + Math.sin(ang) * RADIUS_Y;
+        const x         = cx + Math.cos(ang) * rx;
+        const y         = cy + Math.sin(ang) * ry;
         const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
 
         // Full orbit target values
