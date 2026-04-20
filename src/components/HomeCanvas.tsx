@@ -126,9 +126,11 @@ export default function HomeCanvas() {
     const sticky = stickyRef.current;
     if (!outer || !sticky) return;
 
+    const stickyEl = sticky;
+
     function render(scrollProg: number) {
-      const w  = sticky.offsetWidth;
-      const h  = sticky.offsetHeight;
+      const w  = stickyEl.offsetWidth;
+      const h  = stickyEl.offsetHeight;
       const cy = h * 0.50;
 
       // Continuous rotation across the full scroll range
