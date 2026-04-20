@@ -58,31 +58,21 @@ const PROJECTS = [
 
 const N            = PROJECTS.length;
 const TWO_PI       = Math.PI * 2;
-const RADIUS_X     = 480;
-const RADIUS_Y     = 260;
+const RADIUS_X     = 560;
+const RADIUS_Y     = 300;
 const ACTIVE_ANGLE = Math.PI; // 9 o'clock (leftmost)
 const WIDTH_MIN    = 100;
 const WIDTH_RANGE  = 320; // 100 + 320 = 420 at full proximity
 const ASPECT       = 0.667;
 const META_THRESH  = 0.92;
-const META_W       = 220;
+const META_W       = 280;
 
-// Intro state
+// Intro state — thumbnails start on-orbit at uniform small size
 const INTRO_W       = 180;
-const INTRO_H       = 120;
+const INTRO_H       = INTRO_W * ASPECT;
 const INTRO_BLUR    = 4;
 const INTRO_OPACITY = 0.5;
-const INTRO_END     = 0.15; // scroll progress at which orbit begins
-
-const INTRO_POSITIONS = [
-  { left: 0.28, top: 0.12 },
-  { left: 0.43, top: 0.08 },
-  { left: 0.18, top: 0.33 },
-  { left: 0.62, top: 0.28 },
-  { left: 0.26, top: 0.60 },
-  { left: 0.43, top: 0.72 },
-  { left: 0.62, top: 0.58 },
-];
+const INTRO_END     = 0.20; // scroll progress at which intro lerp completes
 
 function MetaRow({
   label, value, mono,
@@ -105,7 +95,7 @@ function MetaRow({
         fontFamily: mono
           ? "var(--font-dm-mono), monospace"
           : "var(--font-jakarta), system-ui, sans-serif",
-        fontSize: mono ? 11 : 16, fontWeight: 500,
+        fontSize: mono ? 11 : 17, fontWeight: 500,
         color: mono ? "#B5B5B5" : "#3A3A3A",
         letterSpacing: mono ? "-0.09em" : "-0.05em",
         lineHeight: 1.45, display: "flex", alignItems: "center",
@@ -137,107 +127,79 @@ export default function HomeCanvas() {
     function render(scrollProg: number) {
       const w  = sticky.offsetWidth;
       const h  = sticky.offsetHeight;
-      const cx = w * 0.72;
+      const cx = w * 0.62;
       const cy = h * 0.50;
 
-      if (scrollProg < INTRO_END) {
-        // ── Intro: scatter → orbit (single smoothstep, all properties) ────────
-        const t    = scrollProg / INTRO_END;
-        const ease = t * t * (3 - 2 * t); // smoothstep
+      // Continuous rotation across the full scroll range
+      const orbitRp = scrollProg * 1.25;
 
-        for (let i = 0; i < N; i++) {
-          const orbitAng  = (i / N) * TWO_PI;
-          const orbitX    = cx + Math.cos(orbitAng) * RADIUS_X;
-          const orbitY    = cy + Math.sin(orbitAng) * RADIUS_Y;
-          const proximity = (Math.cos(orbitAng - ACTIVE_ANGLE) + 1) / 2;
-          const orbitW    = WIDTH_MIN + proximity * WIDTH_RANGE;
-          const orbitH    = orbitW * ASPECT;
+      // Intro lerp: 0 → INTRO_END smoothsteps from uniform-small to full orbit sizing
+      const introT  = Math.min(scrollProg / INTRO_END, 1);
+      const ease    = introT * introT * (3 - 2 * introT); // smoothstep
+      const isIntro = scrollProg < INTRO_END;
 
-          const introX = INTRO_POSITIONS[i].left * w;
-          const introY = INTRO_POSITIONS[i].top * h;
+      // Intro text: visible at 0, gone by scrollProg 0.10
+      const textEl = introTextRef.current;
+      if (textEl) {
+        textEl.style.opacity = String(Math.max(0, 1 - scrollProg / 0.10));
+      }
 
-          const x      = introX + (orbitX - introX) * ease;
-          const y      = introY + (orbitY - introY) * ease;
-          const width  = INTRO_W + (orbitW - INTRO_W) * ease;
-          const height = INTRO_H + (orbitH - INTRO_H) * ease;
-          const blur   = INTRO_BLUR + ((1 - proximity) * 8 - INTRO_BLUR) * ease;
-          const op     = INTRO_OPACITY + ((0.35 + proximity * 0.65) - INTRO_OPACITY) * ease;
+      let bestP = -1, bestI = 0;
+      let bestX = 0, bestY = 0, bestW = 0, bestH = 0;
 
-          const el = frameRefs.current[i];
-          if (el) {
-            gsap.set(el, {
-              x: x - width / 2,
-              y: y - height / 2,
-              width,
-              height,
-              filter: `blur(${blur}px)`,
-              opacity: op,
-              zIndex: Math.round(proximity * 10),
-            });
-          }
-        }
+      for (let i = 0; i < N; i++) {
+        const ang       = (i / N) * TWO_PI + orbitRp * TWO_PI;
+        const x         = cx + Math.cos(ang) * RADIUS_X;
+        const y         = cy + Math.sin(ang) * RADIUS_Y;
+        const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
 
-        // Intro text fades to 0 by 10% of scroll range
-        const textEl = introTextRef.current;
-        if (textEl) {
-          textEl.style.opacity = String(Math.max(0, 1 - scrollProg / (INTRO_END * 0.67)));
-        }
+        // Full orbit target values
+        const orbitW    = WIDTH_MIN + proximity * WIDTH_RANGE;
+        const orbitH    = orbitW * ASPECT;
+        const orbitBlur = (1 - proximity) * 8;
+        const orbitOp   = 0.35 + proximity * 0.65;
 
-        const metaEl = metaRef.current;
-        if (metaEl) gsap.set(metaEl, { opacity: 0, pointerEvents: "none" });
+        // During intro: lerp from uniform small → orbit; after intro: full orbit
+        const width  = isIntro ? INTRO_W + (orbitW - INTRO_W) * ease : orbitW;
+        const height = isIntro ? INTRO_H + (orbitH - INTRO_H) * ease : orbitH;
+        const blur   = isIntro ? INTRO_BLUR + (orbitBlur - INTRO_BLUR) * ease : orbitBlur;
+        const op     = isIntro ? INTRO_OPACITY + (orbitOp - INTRO_OPACITY) * ease : orbitOp;
 
-      } else {
-        // ── Orbit: scrollProg 0.15→1.0 maps to 0→1.25 rotations ─────────────
-        const orbitRp = ((scrollProg - INTRO_END) / (1 - INTRO_END)) * 1.25;
-
-        const textEl = introTextRef.current;
-        if (textEl) textEl.style.opacity = "0";
-
-        let bestP = -1, bestI = 0;
-        let bestX = 0, bestY = 0, bestW = 0, bestH = 0;
-
-        for (let i = 0; i < N; i++) {
-          const ang       = (i / N) * TWO_PI + orbitRp * TWO_PI;
-          const x         = cx + Math.cos(ang) * RADIUS_X;
-          const y         = cy + Math.sin(ang) * RADIUS_Y;
-          const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
-          const width     = WIDTH_MIN + proximity * WIDTH_RANGE;
-          const height    = width * ASPECT;
-
-          const el = frameRefs.current[i];
-          if (el) {
-            gsap.set(el, {
-              x: x - width / 2,
-              y: y - height / 2,
-              width,
-              height,
-              filter: `blur(${(1 - proximity) * 8}px)`,
-              opacity: 0.35 + proximity * 0.65,
-              zIndex: Math.round(proximity * 10),
-            });
-          }
-
-          if (proximity > bestP) {
-            bestP = proximity; bestI = i;
-            bestX = x; bestY = y; bestW = width; bestH = height;
-          }
-        }
-
-        if (bestI !== lastActiveI.current) {
-          lastActiveI.current = bestI;
-          setActiveIndex(bestI);
-        }
-
-        const metaEl = metaRef.current;
-        if (metaEl) {
-          const mo = bestP > META_THRESH ? (bestP - META_THRESH) / (1 - META_THRESH) : 0;
-          gsap.set(metaEl, {
-            opacity: mo,
-            x: Math.max(0, bestX - bestW / 2 - META_W - 16),
-            y: bestY - bestH / 2,
-            pointerEvents: mo > 0 ? "auto" : "none",
+        const el = frameRefs.current[i];
+        if (el) {
+          gsap.set(el, {
+            x: x - width / 2,
+            y: y - height / 2,
+            width, height,
+            filter: `blur(${blur}px)`,
+            opacity: op,
+            zIndex: Math.round(proximity * 10),
           });
         }
+
+        if (proximity > bestP) {
+          bestP = proximity; bestI = i;
+          bestX = x; bestY = y; bestW = width; bestH = height;
+        }
+      }
+
+      if (bestI !== lastActiveI.current) {
+        lastActiveI.current = bestI;
+        setActiveIndex(bestI);
+      }
+
+      // Metadata: hidden during intro, fades in once active thumbnail is prominent
+      const metaEl = metaRef.current;
+      if (metaEl) {
+        const mo = !isIntro && bestP > META_THRESH
+          ? (bestP - META_THRESH) / (1 - META_THRESH)
+          : 0;
+        gsap.set(metaEl, {
+          opacity: mo,
+          x: Math.max(0, bestX - bestW / 2 - META_W - 16),
+          y: bestY - bestH / 2,
+          pointerEvents: mo > 0 ? "auto" : "none",
+        });
       }
     }
 
@@ -320,6 +282,7 @@ export default function HomeCanvas() {
             left: 0,
             top: 0,
             width: META_W,
+            minWidth: META_W,
             opacity: 0,
             pointerEvents: "none",
             zIndex: 20,
