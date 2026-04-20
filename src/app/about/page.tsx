@@ -5,7 +5,7 @@ import DesignPhilosophy from "@/components/DesignPhilosophy";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function O(props: any) {
-  return <span style={{ color: "#F35900" }}>{props.children}</span>;
+  return <span style={{ color: "#F35900", fontWeight: 600 }}>{props.children}</span>;
 }
 
 const bodyStyle: React.CSSProperties = {
@@ -55,42 +55,38 @@ export default function AboutPage() {
             margin: "0 0 28px 0",
           }}
         >
-          Before I was a product designer, I was an architectural designer,
-          an engineer, a competitive dancer, and a kid obsessed with puzzles.
+          Before she was a product designer, Harsha was an{" "}
+          <O>architectural designer</O>, an <O>engineer</O>, a{" "}
+          <O>competitive dancer</O>, and a kid obsessed with puzzles.
         </p>
 
         {/* Bio paragraphs */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <p style={bodyStyle}>
-            <O>Born in Switzerland, raised in Germany, of Indian heritage</O> — I
-            learned early to{" "}
-            <O>meet people where they are</O>, not where I expect them to be.
-            It lives in every user interview, every design decision, every moment
-            I try to build something that actually fits.
+            Born in Switzerland, raised in Germany, of Indian heritage — she
+            learned early to meet people where they are, not where she expects
+            them to be. It lives in every user interview, every design decision,
+            every moment she tries to build something that actually fits.
           </p>
           <p style={bodyStyle}>
-            When I found <O>product design</O>, I stopped looking for what I was
-            supposed to do next.
+            When she found <O>product design</O>, she stopped looking for what
+            she was supposed to do next. Three years in, she still loves
+            everything about it — the <O>strategy</O>, the <O>craft</O>, the
+            moment something gets into someone&apos;s hands and actually works.
+            She wants to be close to the thing being built and close to the
+            people it is being built for.
           </p>
           <p style={bodyStyle}>
-            I have 3 years of experience in product and I love everything about
-            it. <O>The strategy, the craft</O>, the moment something gets into
-            someone&apos;s hands and actually works. Whether that is as a designer,
-            a strategist, or somewhere in between, I want to be close to the thing
-            being built and close to the people it is being built for.
-          </p>
-          <p style={bodyStyle}>
-            But what I care about most is what gets built in the first place, and
+            What she cares about most is what gets built in the first place, and
             why. In a world where anything can be made, it is not a question of
-            can we. It is <O>should we</O>. My professor and mentor Allan
-            Chochinov always reminded me that designers are in the{" "}
-            <O>consequence business</O>, and I try not to forget that.
+            can we. It is <O>should we</O>. Her professor and mentor Allan
+            Chochinov always reminded her that designers are in the{" "}
+            <O>consequence business</O>, and she tries not to forget that.
           </p>
           <p style={bodyStyle}>
-            I am a lifelong learner,{" "}
-            <O>polylingual, perpetually curious</O>, currently sharpening my
-            Mandarin. I still start and end every day with the{" "}
-            <O>NYT games</O>. Some puzzles never get old.
+            Polylingual, perpetually curious, currently sharpening her{" "}
+            <O>Mandarin</O>. Ultimately, trying to live as many lives as
+            possible in this one.
           </p>
         </div>
 

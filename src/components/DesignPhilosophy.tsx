@@ -11,19 +11,19 @@ const rings = [
     nodes: [
       {
         n: "Competitive dancer",
-        d: "I trained as a competitive dancer for years. That taught me something no classroom did — that talent is just the starting point. The people who get better are the ones who show up anyway, especially when it is not going well. I bring that to everything.",
+        d: "She trained as a competitive dancer for years. That taught her something no classroom did — that talent is just the starting point. The people who get better are the ones who show up anyway, especially when it is not going well. She brings that to everything.",
       },
       {
         n: "Pattern recognition",
-        d: "I have solved puzzles every day since I learned the rules of sudoku when I was 8 years old. My brain finds patterns before I consciously look for them — in data, in behavior, in systems. If you think that is not a real skill, challenge me to a game of Pipes.",
+        d: "She has solved puzzles every day since she learned the rules of sudoku when she was 8 years old. Her brain finds patterns before she consciously looks for them — in data, in behavior, in systems. If you think that is not a real skill, challenge her to a game of Pipes.",
       },
       {
         n: "Care as material",
-        d: "I want the things I make to feel like someone was actually thinking about you when they built them. Not just functional. Not just shipped. Considered.",
+        d: "She wants the things she makes to feel like someone was actually thinking about you when they built them. Not just functional. Not just shipped. Considered.",
       },
       {
         n: "Communication as superpower",
-        d: "I speak multiple languages, trained in Bharatanatyam, and grew up moving between cultures. Communication for me has never been just words — it is visual, physical, relational. I take real pride in my ability to find a genuine connection with almost anyone.",
+        d: "She speaks multiple languages, trained in Bharatanatyam, and grew up moving between cultures. Communication has never been just words — it is visual, physical, relational. She takes real pride in her ability to find a genuine connection with almost anyone.",
       },
     ],
   },
@@ -35,19 +35,19 @@ const rings = [
     nodes: [
       {
         n: "Systems thinking",
-        d: "Architecture school teaches you to hold a door handle and a city block in your head at the same time. I have never been able to look at a single screen without seeing the system around it.",
+        d: "Architecture school teaches you to hold a door handle and a city block in your head at the same time. She has never been able to look at a single screen without seeing the system around it.",
       },
       {
         n: "Technical fluency",
-        d: "I can build what I design. That changes everything about how I think before I ever open Figma — I know what the constraint actually is, not just what it looks like from the outside.",
+        d: "She can build what she designs. That changes everything about how she thinks before she ever opens Figma — she knows what the constraint actually is, not just what it looks like from the outside.",
       },
       {
         n: "Research rigor",
-        d: "My thesis was a year inside genuinely ambiguous territory — intergenerational care, what technology misses about human connection. I was trained to ask better questions, not faster ones.",
+        d: "Her thesis was a year inside genuinely ambiguous territory — intergenerational care, what technology misses about human connection. She was trained to ask better questions, not faster ones.",
       },
       {
         n: "Responsible AI",
-        d: "I was in CS school when ML first got loud. I sat in the early seminars about environmental cost and ethical risk. I understood then that there was a line. I still design like crossing it has consequences.",
+        d: "She was in CS school when ML first got loud. She sat in the early seminars about environmental cost and ethical risk. She understood then that there was a line. She still designs like crossing it has consequences.",
       },
     ],
   },
@@ -59,7 +59,7 @@ const rings = [
     nodes: [
       {
         n: "Designing for consequences",
-        d: "When pursuing my MFA, Professor Allan Chochinov taught me that designers are in the consequence business. The question I keep returning to is not what can we build — it is what happens after we do. That question does not have a comfortable answer. I do not think it should.",
+        d: "When pursuing her MFA, Professor Allan Chochinov taught her that designers are in the consequence business. The question she keeps returning to is not what can we build — it is what happens after we do. That question does not have a comfortable answer. She does not think it should.",
       },
       {
         n: "Digital loneliness",
@@ -104,8 +104,10 @@ export default function DesignPhilosophy() {
   const starsRef          = useRef<StarDef[]>([]);
   const logicalSizeRef    = useRef({ w: 0, h: 0 });
 
-  const [nodeHover, setNodeHover] = useState<NodeHover | null>(null);
-  const [ringHover, setRingHover] = useState<RingHover | null>(null);
+  const [nodeHover, setNodeHover]       = useState<NodeHover | null>(null);
+  const [ringHover, setRingHover]       = useState<RingHover | null>(null);
+  const [centerHovered, setCenterHovered] = useState(false);
+  const [canvasSize, setCanvasSize]     = useState({ w: 0, h: 0 });
 
   const draw = useCallback((timestamp: number) => {
     const canvas = canvasRef.current;
@@ -259,6 +261,11 @@ export default function DesignPhilosophy() {
     const my   = e.clientY - rect.top;
     mouseRef.current = { x: mx, y: my };
 
+    // Center circle hover
+    const ccx = logicalSizeRef.current.w / 2;
+    const ccy = logicalSizeRef.current.h / 2;
+    setCenterHovered(Math.hypot(mx - ccx, my - ccy) <= 44);
+
     // Node hover check
     let foundNode = false;
     for (let ri = 0; ri < rings.length; ri++) {
@@ -299,6 +306,7 @@ export default function DesignPhilosophy() {
     mouseRef.current = { x: -9999, y: -9999 };
     setNodeHover(null);
     setRingHover(null);
+    setCenterHovered(false);
   }, []);
 
   // Canvas sizing
@@ -312,6 +320,7 @@ export default function DesignPhilosophy() {
       const W   = container.clientWidth;
       const H   = container.clientHeight;
       logicalSizeRef.current = { w: W, h: H };
+      setCanvasSize({ w: W, h: H });
       canvas.width        = W * dpr;
       canvas.height       = H * dpr;
       canvas.style.width  = W + "px";
@@ -389,9 +398,32 @@ export default function DesignPhilosophy() {
           display: "block",
           width: "100%",
           height: "100%",
-          cursor: nodeHover ? "pointer" : "default",
+          cursor: (nodeHover || centerHovered) ? "pointer" : "default",
         }}
       />
+
+      {/* Center circle childhood photo overlay */}
+      {canvasSize.w > 0 && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/images/harsha-child.jpg"
+          alt=""
+          style={{
+            position: "absolute",
+            left: canvasSize.w / 2 - 44,
+            top: canvasSize.h / 2 - 44,
+            width: 88,
+            height: 88,
+            borderRadius: "50%",
+            objectFit: "cover",
+            objectPosition: "center top",
+            opacity: centerHovered ? 1 : 0,
+            transition: "opacity 0.3s ease",
+            pointerEvents: "none",
+            zIndex: 5,
+          }}
+        />
+      )}
 
       {/* Ring hover pill */}
       {ringHover && activeRing && (
