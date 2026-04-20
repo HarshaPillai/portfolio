@@ -58,8 +58,8 @@ const PROJECTS = [
 
 const N            = PROJECTS.length;
 const TWO_PI       = Math.PI * 2;
-const RADIUS_X     = 280;
-const RADIUS_Y     = 160;
+const RADIUS_X     = 320;
+const RADIUS_Y     = 200;
 const ACTIVE_ANGLE = Math.PI; // 9 o'clock (leftmost)
 const WIDTH_MIN    = 120;
 const WIDTH_RANGE  = 480; // 120 + 480 = 600 at full proximity
@@ -127,8 +127,10 @@ export default function HomeCanvas() {
   const frameRefs     = useRef<(HTMLDivElement | null)[]>([]);
   const metaRef       = useRef<HTMLDivElement>(null);
   const introTextRef  = useRef<HTMLDivElement>(null);
-  const scrollProgRef = useRef(0);
-  const lastActiveI   = useRef(-1);
+  const scrollProgRef   = useRef(0);
+  const lastActiveI     = useRef(-1);
+  const debugEllipseRef = useRef<SVGEllipseElement>(null);
+  const frameCountRef   = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -141,9 +143,23 @@ export default function HomeCanvas() {
     function render(scrollProg: number) {
       const w  = sticky.offsetWidth;
       const h  = sticky.offsetHeight;
-      // Bug 2 fix: center at 68% of full viewport width, offset by sidebar
-      const cx = window.innerWidth * 0.68 - 200;
-      const cy = h * 0.5;
+      // cx/cy are in container-relative coordinates (thumbnails are position:absolute
+      // inside sticky, so (0,0) is sticky's top-left corner, not the viewport).
+      const cx = w * 0.60;
+      const cy = h * 0.50;
+
+      frameCountRef.current++;
+
+      // Update debug ellipse overlay
+      const dbgEl = debugEllipseRef.current;
+      if (dbgEl) {
+        dbgEl.setAttribute("cx", cx.toFixed(0));
+        dbgEl.setAttribute("cy", cy.toFixed(0));
+        dbgEl.setAttribute("rx", String(RADIUS_X));
+        dbgEl.setAttribute("ry", String(RADIUS_Y));
+      }
+
+      let dbgX0 = 0, dbgY0 = 0; // center of thumbnail 0 (populated below)
 
       if (scrollProg < SCALE_END) {
         // ── Phase 1 (0 → MOVE_END): slide to orbit slots, hold intro size ────
@@ -172,6 +188,7 @@ export default function HomeCanvas() {
           // Position driven by phase 1 easing (all 7 arrive simultaneously at MOVE_END)
           const x = introX + (orbitX - introX) * eMove;
           const y = introY + (orbitY - introY) * eMove;
+          if (i === 0) { dbgX0 = x; dbgY0 = y; }
 
           // Size/blur/opacity driven by phase 2 easing (held at intro values until MOVE_END)
           const width  = INTRO_W + (orbitW - INTRO_W) * eScale;
@@ -217,6 +234,7 @@ export default function HomeCanvas() {
           const ang       = (i / N) * TWO_PI + orbitRp * TWO_PI;
           const x         = cx + Math.cos(ang) * RADIUS_X;
           const y         = cy + Math.sin(ang) * RADIUS_Y;
+          if (i === 0) { dbgX0 = x; dbgY0 = y; }
           const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
           const width     = WIDTH_MIN + proximity * WIDTH_RANGE;
           const height    = width * ASPECT;
@@ -255,6 +273,15 @@ export default function HomeCanvas() {
             pointerEvents: mo > 0 ? "auto" : "none",
           });
         }
+      }
+
+      if (frameCountRef.current % 10 === 0) {
+        console.log(
+          "thumb 0 pos:", dbgX0.toFixed(0), dbgY0.toFixed(0),
+          "| orbit center:", cx.toFixed(0), cy.toFixed(0),
+          "| radii:", RADIUS_X, RADIUS_Y,
+          "| container:", w, h,
+        );
       }
     }
 
@@ -365,6 +392,20 @@ export default function HomeCanvas() {
             ↓
           </span>
         </div>
+
+        {/* DEBUG: ellipse path overlay — remove once orbit is confirmed */}
+        <svg style={{
+          position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+          pointerEvents: "none", zIndex: 99,
+        }}>
+          <ellipse
+            ref={debugEllipseRef}
+            fill="none"
+            stroke="red"
+            strokeWidth="1"
+            opacity="0.4"
+          />
+        </svg>
       </div>
     </div>
   );
