@@ -2,17 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { createClient } from "next-sanity";
+import { client } from "@/lib/sanity";
 import BsideLoader from "@/components/BsideLoader";
-
-// Bypass CDN so we always get fresh data; useCdn: false also allows previewDrafts
-const debugClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "5t3s0ncb",
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "production",
-  apiVersion: "2024-01-01",
-  useCdn: false,
-  perspective: "previewDrafts",
-});
 
 const BsideGradient = dynamic(() => import("@/components/BsideGradient"), {
   ssr: false,
@@ -39,7 +30,6 @@ type LabItem = {
   status?: "live" | "wip" | "archived";
   tags?: string[];
   thumbnail?: ThumbnailAsset;
-  thumbnailUrl?: string;
 };
 
 // ─── GROQ query ───────────────────────────────────────────────────────────────
@@ -57,11 +47,8 @@ const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
   tags,
   "thumbnail": thumbnail.asset->{
     url,
-    "metadata": metadata {
-      "dimensions": dimensions { width, height }
-    }
-  },
-  "thumbnailUrl": thumbnail.asset->url
+    metadata { dimensions { width, height } }
+  }
 }`;
 
 // ─── Status pip ───────────────────────────────────────────────────────────────
@@ -114,7 +101,7 @@ function LabCard({
 
   const dims = item.thumbnail?.metadata?.dimensions;
   const aspectRatio = dims ? dims.width / dims.height : undefined;
-  const imgUrl = item.thumbnail?.url ?? item.thumbnailUrl;
+  const imgUrl = item.thumbnail?.url;
 
   return (
     <div
@@ -327,10 +314,10 @@ function Lightbox({
           maxWidth: "80vw",
         }}
       >
-        {(item.thumbnail?.url ?? item.thumbnailUrl) ? (
+        {item.thumbnail?.url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={(item.thumbnail?.url ?? item.thumbnailUrl)!}
+            src={item.thumbnail.url}
             alt={item.title}
             style={{
               maxWidth: "80vw",
@@ -436,16 +423,10 @@ export default function BSidePage() {
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    debugClient
+    client
       .fetch<LabItem[]>(QUERY)
-      .then((data) => {
-        console.log("[b-side] fetched lab items:", JSON.stringify(data, null, 2));
-        setLabItems(data);
-      })
-      .catch((err) => {
-        console.error("[b-side] fetch error:", err);
-        setLabItems([]);
-      });
+      .then(setLabItems)
+      .catch(() => setLabItems([]));
   }, []);
 
   useEffect(() => {
