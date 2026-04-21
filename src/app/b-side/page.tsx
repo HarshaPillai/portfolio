@@ -2,8 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { sanityClient } from "@/lib/sanity";
+import { createClient } from "next-sanity";
 import BsideLoader from "@/components/BsideLoader";
+
+// Bypass CDN so we always get fresh data; useCdn: false also allows previewDrafts
+const debugClient = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "5t3s0ncb",
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "production",
+  apiVersion: "2024-01-01",
+  useCdn: false,
+  perspective: "previewDrafts",
+});
 
 const BsideGradient = dynamic(() => import("@/components/BsideGradient"), {
   ssr: false,
@@ -427,7 +436,7 @@ export default function BSidePage() {
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    sanityClient
+    debugClient
       .fetch<LabItem[]>(QUERY)
       .then((data) => {
         console.log("[b-side] fetched lab items:", JSON.stringify(data, null, 2));
