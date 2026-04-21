@@ -32,6 +32,15 @@
   to   { opacity: 1; }
 }
 
+/* ─── B-Side skeleton card pulse ────────────────────────────────────────────── */
+@keyframes bsidePulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+.bside-skeleton {
+  animation: bsidePulse 1.6s ease-in-out infinite;
+}
+
 /* ─── Responsive: mobile (≤768px) ───────────────────────────────────────────── */
 @media (max-width: 768px) {
   .app-sidebar  { display: none !important; }

@@ -75,3 +75,21 @@ export const getProjectBySlug = groq`
 export const getAllProjectSlugs = groq`
   *[_type == "project"] { "slug": slug.current }
 `;
+
+// ─── B-Side / lab items ───────────────────────────────────────────────────────
+
+export const getLabItems = groq`
+  *[_type == "labItem"] | order(_createdAt desc) {
+    _id,
+    title,
+    slug,
+    year,
+    about,
+    type,
+    externalUrl,
+    contentType,
+    status,
+    tags,
+    "thumbnail": thumbnail.asset->url
+  }
+`;

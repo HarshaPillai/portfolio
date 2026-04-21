@@ -14,6 +14,7 @@ export const labItemType = {
       title: "Slug",
       type: "slug",
       options: { source: "title" },
+      validation: (Rule: { required: () => unknown }) => Rule.required(),
     },
     {
       name: "year",
@@ -65,6 +66,24 @@ export const labItemType = {
       title: "Images",
       type: "array",
       of: [{ type: "image", options: { hotspot: true } }],
+    },
+    {
+      name: "tags",
+      title: "Tags",
+      type: "array",
+      of: [{ type: "string" }],
+    },
+    {
+      name: "status",
+      title: "Status",
+      type: "string",
+      options: {
+        list: [
+          { title: "Live", value: "live" },
+          { title: "WIP", value: "wip" },
+          { title: "Archived", value: "archived" },
+        ],
+      },
     },
   ],
 };
