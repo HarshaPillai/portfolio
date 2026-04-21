@@ -30,6 +30,7 @@ type LabItem = {
   status?: "live" | "wip" | "archived";
   tags?: string[];
   thumbnail?: ThumbnailAsset;
+  thumbnailUrl?: string;
 };
 
 // ─── GROQ query ───────────────────────────────────────────────────────────────
@@ -47,8 +48,11 @@ const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
   tags,
   "thumbnail": thumbnail.asset->{
     url,
-    metadata { dimensions { width, height } }
-  }
+    "metadata": metadata {
+      "dimensions": dimensions { width, height }
+    }
+  },
+  "thumbnailUrl": thumbnail.asset->url
 }`;
 
 // ─── Status pip ───────────────────────────────────────────────────────────────
@@ -101,6 +105,7 @@ function LabCard({
 
   const dims = item.thumbnail?.metadata?.dimensions;
   const aspectRatio = dims ? dims.width / dims.height : undefined;
+  const imgUrl = item.thumbnail?.url ?? item.thumbnailUrl;
 
   return (
     <div
@@ -120,10 +125,10 @@ function LabCard({
       }}
     >
       {/* Thumbnail or placeholder */}
-      {item.thumbnail?.url ? (
+      {imgUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={item.thumbnail.url}
+          src={imgUrl}
           alt={item.title}
           style={{
             display: "block",
@@ -313,10 +318,10 @@ function Lightbox({
           maxWidth: "80vw",
         }}
       >
-        {item.thumbnail?.url ? (
+        {(item.thumbnail?.url ?? item.thumbnailUrl) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.thumbnail.url}
+            src={(item.thumbnail?.url ?? item.thumbnailUrl)!}
             alt={item.title}
             style={{
               maxWidth: "80vw",
@@ -424,8 +429,14 @@ export default function BSidePage() {
     fetchedRef.current = true;
     sanityClient
       .fetch<LabItem[]>(QUERY)
-      .then(setLabItems)
-      .catch(() => setLabItems([]));
+      .then((data) => {
+        console.log("[b-side] fetched lab items:", JSON.stringify(data, null, 2));
+        setLabItems(data);
+      })
+      .catch((err) => {
+        console.error("[b-side] fetch error:", err);
+        setLabItems([]);
+      });
   }, []);
 
   useEffect(() => {
