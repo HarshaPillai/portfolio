@@ -8,14 +8,13 @@ export const sanityClient = createClient({
   useCdn: true,
 });
 
-// Authenticated client for private datasets.
-// Must use NEXT_PUBLIC_ prefix so the token is available in client components.
+// Authenticated client for private datasets — SANITY_API_TOKEN is server-only (no NEXT_PUBLIC_)
 export const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "5t3s0ncb",
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "production",
   apiVersion: "2024-01-01",
   useCdn: false,
-  token: process.env.NEXT_PUBLIC_SANITY_API_TOKEN,
+  token: process.env.SANITY_API_TOKEN,
 });
 
 const builder = createImageUrlBuilder(sanityClient);
