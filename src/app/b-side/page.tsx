@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { client } from "@/lib/sanity";
 import BsideLoader from "@/components/BsideLoader";
@@ -10,13 +10,6 @@ const BsideGradient = dynamic(() => import("@/components/BsideGradient"), {
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type ThumbnailAsset = {
-  url: string;
-  metadata: {
-    dimensions: { width: number; height: number };
-  };
-};
 
 type LabItem = {
   _id: string;
@@ -29,27 +22,8 @@ type LabItem = {
   contentType: "image" | "gallery" | "embed";
   status?: "live" | "wip" | "archived";
   tags?: string[];
-  thumbnail?: ThumbnailAsset;
+  thumbnailUrl?: string;
 };
-
-// ─── GROQ query ───────────────────────────────────────────────────────────────
-
-const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
-  _id,
-  title,
-  slug,
-  year,
-  about,
-  type,
-  externalUrl,
-  contentType,
-  status,
-  tags,
-  "thumbnail": thumbnail.asset->{
-    url,
-    metadata { dimensions { width, height } }
-  }
-}`;
 
 // ─── Status pip ───────────────────────────────────────────────────────────────
 
@@ -99,10 +73,6 @@ function LabCard({
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const dims = item.thumbnail?.metadata?.dimensions;
-  const aspectRatio = dims ? dims.width / dims.height : undefined;
-  const imgUrl = item.thumbnail?.url;
-
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -121,26 +91,15 @@ function LabCard({
       }}
     >
       {/* Thumbnail or placeholder */}
-      {imgUrl ? (
+      {item.thumbnailUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={imgUrl}
+          src={item.thumbnailUrl}
           alt={item.title}
-          style={{
-            display: "block",
-            width: "100%",
-            aspectRatio: aspectRatio ? String(aspectRatio) : undefined,
-            objectFit: "cover",
-          }}
+          style={{ display: "block", width: "100%", objectFit: "cover" }}
         />
       ) : (
-        <div
-          style={{
-            width: "100%",
-            minHeight: 180,
-            background: "rgba(255,255,255,0.04)",
-          }}
-        />
+        <div style={{ width: "100%", minHeight: 180, background: "rgba(255,255,255,0.04)" }} />
       )}
 
       {/* Hover metadata panel */}
@@ -258,6 +217,8 @@ function LabCard({
 
 // ─── Skeleton card ────────────────────────────────────────────────────────────
 
+const SKELETON_HEIGHTS = [220, 300, 180, 260, 200, 340];
+
 function SkeletonCard({ height }: { height: number }) {
   return (
     <div
@@ -278,13 +239,7 @@ function SkeletonCard({ height }: { height: number }) {
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
-function Lightbox({
-  item,
-  onClose,
-}: {
-  item: LabItem;
-  onClose: () => void;
-}) {
+function Lightbox({ item, onClose }: { item: LabItem; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -306,60 +261,33 @@ function Lightbox({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 20,
-          maxWidth: "80vw",
-        }}
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, maxWidth: "80vw" }}
       >
-        {item.thumbnail?.url ? (
+        {item.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.thumbnail.url}
+            src={item.thumbnailUrl}
             alt={item.title}
-            style={{
-              maxWidth: "80vw",
-              maxHeight: "80vh",
-              objectFit: "contain",
-              borderRadius: 6,
-              display: "block",
-            }}
+            style={{ maxWidth: "80vw", maxHeight: "80vh", objectFit: "contain", borderRadius: 6, display: "block" }}
           />
         ) : (
           <div
             style={{
-              width: "60vw",
-              aspectRatio: "16/9",
-              background: "rgba(255,255,255,0.04)",
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              width: "60vw", aspectRatio: "16/9", background: "rgba(255,255,255,0.04)",
+              borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            <span
-              style={{
-                fontFamily: "var(--font-dm-mono), monospace",
-                fontSize: 11,
-                color: "rgba(255,255,255,0.15)",
-              }}
-            >
+            <span style={{ fontFamily: "var(--font-dm-mono), monospace", fontSize: 11, color: "rgba(255,255,255,0.15)" }}>
               no preview
             </span>
           </div>
         )}
-
         <div style={{ textAlign: "center" }}>
           <div
             style={{
               fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: 18,
-              fontWeight: 500,
-              color: "rgba(255,255,255,0.85)",
-              letterSpacing: "-0.04em",
-              marginBottom: 6,
+              fontSize: 18, fontWeight: 500, color: "rgba(255,255,255,0.85)",
+              letterSpacing: "-0.04em", marginBottom: 6,
             }}
           >
             {item.title}
@@ -368,10 +296,7 @@ function Lightbox({
             <div
               style={{
                 fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-                fontSize: 13,
-                color: "rgba(255,255,255,0.4)",
-                lineHeight: 1.5,
-                maxWidth: 480,
+                fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, maxWidth: 480,
               }}
             >
               {item.about}
@@ -383,50 +308,37 @@ function Lightbox({
   );
 }
 
-// ─── Masonry grid ─────────────────────────────────────────────────────────────
-
-const SKELETON_HEIGHTS = [220, 300, 180, 260, 200, 340];
-
-function MasonryGrid({
-  items,
-  onCardClick,
-}: {
-  items: LabItem[] | null;
-  onCardClick: (item: LabItem) => void;
-}) {
-  return (
-    <div
-      style={{
-        columns: "3 280px",
-        gap: 12,
-      }}
-    >
-      {items === null
-        ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
-        : items.length === 0
-        ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
-        : items.map((item) => (
-            <LabCard key={item._id} item={item} onClick={onCardClick} />
-          ))}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BSidePage() {
   const [loaded, setLoaded]             = useState(false);
-  const [labItems, setLabItems]         = useState<LabItem[] | null>(null);
+  const [labs, setLabs]                 = useState<LabItem[]>([]);
+  const [loading, setLoading]           = useState(true);
   const [lightboxItem, setLightboxItem] = useState<LabItem | null>(null);
-  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    client
-      .fetch<LabItem[]>(QUERY)
-      .then(setLabItems)
-      .catch(() => setLabItems([]));
+    const fetchLabs = async () => {
+      const query = `*[_type == "labItem"] | order(_createdAt desc) {
+        _id,
+        title,
+        slug,
+        year,
+        about,
+        type,
+        externalUrl,
+        contentType,
+        status,
+        tags,
+        "thumbnailUrl": thumbnail.asset->url
+      }`;
+
+      const data = await client.fetch(query);
+      console.log("[b-side] fetched:", data);
+      setLabs(data);
+      setLoading(false);
+    };
+
+    fetchLabs();
   }, []);
 
   useEffect(() => {
@@ -443,15 +355,10 @@ export default function BSidePage() {
     }
   };
 
+  const showSkeletons = loading || labs.length === 0;
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0A0A0A",
-        position: "relative",
-        overflowY: "auto",
-      }}
-    >
+    <div style={{ minHeight: "100vh", background: "#0A0A0A", position: "relative", overflowY: "auto" }}>
       {/* CD loader */}
       {!loaded && (
         <BsideLoader direction="enter" onComplete={() => setLoaded(true)} />
@@ -502,16 +409,16 @@ export default function BSidePage() {
         </h1>
 
         {/* Divider */}
-        <div
-          style={{
-            height: 1,
-            backgroundColor: "rgba(255,255,255,0.06)",
-            marginBottom: 36,
-          }}
-        />
+        <div style={{ height: 1, backgroundColor: "rgba(255,255,255,0.06)", marginBottom: 36 }} />
 
         {/* Masonry grid */}
-        <MasonryGrid items={loaded ? labItems : null} onCardClick={handleCardClick} />
+        <div style={{ columns: "3 280px", gap: 12 }}>
+          {showSkeletons
+            ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
+            : labs.map((item) => (
+                <LabCard key={item._id} item={item} onClick={handleCardClick} />
+              ))}
+        </div>
       </div>
 
       {/* Lightbox */}
