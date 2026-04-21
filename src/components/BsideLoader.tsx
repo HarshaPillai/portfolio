@@ -66,16 +66,6 @@ function CDFace({ side }: { side: "a" | "b" }) {
         <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
         <circle cx="70" cy="70" r="11" fill="#1a0800" />
         <circle cx="70" cy="70" r="4"  fill="#2a1000" />
-        <text
-          x="70" y="74"
-          textAnchor="middle"
-          fontFamily="'DM Mono', monospace"
-          fontSize="6.5"
-          fill="rgba(255,210,100,0.85)"
-          letterSpacing="1.2"
-        >
-          A-SIDE / labs
-        </text>
       </svg>
     );
   }
@@ -96,16 +86,6 @@ function CDFace({ side }: { side: "a" | "b" }) {
       <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,85,0,0.07)" strokeWidth="0.6" />
       <circle cx="70" cy="70" r="11" fill="#050200" />
       <circle cx="70" cy="70" r="4"  fill="#0A0500" />
-      <text
-        x="70" y="74"
-        textAnchor="middle"
-        fontFamily="'DM Mono', monospace"
-        fontSize="6.5"
-        fill="rgba(255,85,0,0.75)"
-        letterSpacing="1.2"
-      >
-        B-SIDE / labs
-      </text>
     </svg>
   );
 }
