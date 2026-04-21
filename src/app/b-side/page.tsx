@@ -11,6 +11,13 @@ const BsideGradient = dynamic(() => import("@/components/BsideGradient"), {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type ThumbnailAsset = {
+  url: string;
+  metadata: {
+    dimensions: { width: number; height: number };
+  };
+};
+
 type LabItem = {
   _id: string;
   title: string;
@@ -22,7 +29,7 @@ type LabItem = {
   contentType: "image" | "gallery" | "embed";
   status?: "live" | "wip" | "archived";
   tags?: string[];
-  thumbnail?: string;
+  thumbnail?: ThumbnailAsset;
 };
 
 // ─── GROQ query ───────────────────────────────────────────────────────────────
@@ -38,34 +45,45 @@ const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
   contentType,
   status,
   tags,
-  "thumbnail": thumbnail.asset->url
+  "thumbnail": thumbnail.asset->{
+    url,
+    metadata { dimensions { width, height } }
+  }
 }`;
 
-// ─── Skeleton card ────────────────────────────────────────────────────────────
+// ─── Status pip ───────────────────────────────────────────────────────────────
 
-function SkeletonCard() {
+function StatusPip({ status }: { status?: string }) {
+  const color =
+    status === "live"     ? "#3D9142" :
+    status === "wip"      ? "#FF6B00" :
+    status === "archived" ? "rgba(255,255,255,0.2)" :
+    "rgba(255,255,255,0.15)";
+
+  if (!status) return null;
+
   return (
-    <div
-      style={{
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 10,
-        padding: "18px 20px",
-        background: "rgba(255,255,255,0.03)",
-        minHeight: 100,
-      }}
-    >
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
       <div
-        className="bside-skeleton"
-        style={{ width: 32, height: 8, borderRadius: 4, marginBottom: 14, background: "rgba(255,255,255,0.07)" }}
+        style={{
+          width: 5,
+          height: 5,
+          borderRadius: "50%",
+          backgroundColor: color,
+          flexShrink: 0,
+        }}
       />
-      <div
-        className="bside-skeleton"
-        style={{ width: "70%", height: 12, borderRadius: 4, marginBottom: 8, background: "rgba(255,255,255,0.07)" }}
-      />
-      <div
-        className="bside-skeleton"
-        style={{ width: "45%", height: 8, borderRadius: 4, background: "rgba(255,255,255,0.07)" }}
-      />
+      <span
+        style={{
+          fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+          fontSize: 10,
+          color: "rgba(255,255,255,0.3)",
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+        }}
+      >
+        {status}
+      </span>
     </div>
   );
 }
@@ -74,19 +92,15 @@ function SkeletonCard() {
 
 function LabCard({
   item,
-  index,
   onClick,
 }: {
   item: LabItem;
-  index: number;
   onClick: (item: LabItem) => void;
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const pipColor =
-    item.status === "live" ? "#3D9142" :
-    item.status === "wip"  ? "#FF6B00" :
-    "rgba(255,255,255,0.15)";
+  const dims = item.thumbnail?.metadata?.dimensions;
+  const aspectRatio = dims ? dims.width / dims.height : undefined;
 
   return (
     <div
@@ -95,79 +109,169 @@ function LabCard({
       onClick={() => onClick(item)}
       style={{
         position: "relative",
-        border: `1px solid ${hovered ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.07)"}`,
-        borderRadius: 10,
-        padding: "18px 20px",
-        background: hovered ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.03)",
-        cursor: "pointer",
-        transition: "border-color 0.15s, background 0.15s",
         overflow: "hidden",
+        cursor: "pointer",
+        borderRadius: 4,
+        border: `1px solid ${hovered ? "#FF5500" : "rgba(255,255,255,0.06)"}`,
+        transition: "border-color 0.2s ease",
+        breakInside: "avoid",
+        marginBottom: 12,
+        display: "block",
       }}
     >
-      {/* Orange hover glow */}
-      {hovered && (
+      {/* Thumbnail or placeholder */}
+      {item.thumbnail?.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.thumbnail.url}
+          alt={item.title}
+          style={{
+            display: "block",
+            width: "100%",
+            aspectRatio: aspectRatio ? String(aspectRatio) : undefined,
+            objectFit: "cover",
+          }}
+        />
+      ) : (
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            background: "radial-gradient(ellipse at 30% 0%, rgba(255,85,0,0.06) 0%, transparent 70%)",
-            pointerEvents: "none",
+            width: "100%",
+            minHeight: 180,
+            background: "rgba(255,255,255,0.04)",
           }}
         />
       )}
 
-      {/* Index + status pip */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <span
-          style={{
-            fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
-            fontSize: 10,
-            color: "rgba(255,255,255,0.2)",
-            lineHeight: 1,
-          }}
-        >
-          {String(index + 1).padStart(2, "0")}
-        </span>
-        <div
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            backgroundColor: pipColor,
-            flexShrink: 0,
-          }}
-        />
-      </div>
-
-      {/* Title */}
+      {/* Hover metadata panel */}
       <div
         style={{
-          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-          fontSize: 13,
-          fontWeight: 400,
-          color: "rgba(255,255,255,0.6)",
-          lineHeight: 1.45,
-          marginBottom: 8,
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "rgba(0,0,0,0.88)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          padding: "14px 16px",
+          transform: hovered ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 0.25s ease",
         }}
       >
-        {item.title}
-      </div>
-
-      {/* Tags */}
-      {item.tags && item.tags.length > 0 && (
-        <div
-          style={{
-            fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
-            fontSize: 9,
-            color: "rgba(255,255,255,0.15)",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          {item.tags.join(" · ")}
+        {/* Project row */}
+        <div style={{ marginBottom: 6 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+              fontSize: 9,
+              color: "rgba(255,255,255,0.3)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              marginBottom: 2,
+            }}
+          >
+            Project
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontSize: 16,
+                fontWeight: 500,
+                color: "#FFFFFF",
+                letterSpacing: "-0.03em",
+                lineHeight: 1.2,
+              }}
+            >
+              {item.title}
+            </span>
+            {item.type === "external" && (
+              <span style={{ color: "#FF5500", fontSize: 14, lineHeight: 1 }}>↗</span>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Year row */}
+        {item.year && (
+          <div style={{ marginBottom: 6 }}>
+            <div
+              style={{
+                fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+                fontSize: 9,
+                color: "rgba(255,255,255,0.3)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginBottom: 2,
+              }}
+            >
+              Year
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+                fontSize: 11,
+                color: "rgba(255,255,255,0.6)",
+              }}
+            >
+              {item.year}
+            </div>
+          </div>
+        )}
+
+        {/* About row */}
+        {item.about && (
+          <div style={{ marginBottom: 4 }}>
+            <div
+              style={{
+                fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+                fontSize: 9,
+                color: "rgba(255,255,255,0.3)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginBottom: 2,
+              }}
+            >
+              About
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontSize: 12,
+                color: "rgba(255,255,255,0.7)",
+                lineHeight: 1.45,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {item.about}
+            </div>
+          </div>
+        )}
+
+        <StatusPip status={item.status} />
+      </div>
     </div>
+  );
+}
+
+// ─── Skeleton card ────────────────────────────────────────────────────────────
+
+function SkeletonCard({ height }: { height: number }) {
+  return (
+    <div
+      className="bside-skeleton"
+      style={{
+        width: "100%",
+        height,
+        borderRadius: 4,
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        breakInside: "avoid",
+        marginBottom: 12,
+        display: "block",
+      }}
+    />
   );
 }
 
@@ -192,7 +296,7 @@ function Lightbox({
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(0,0,0,0.75)",
+        backgroundColor: "rgba(0,0,0,0.92)",
         zIndex: 8000,
         display: "flex",
         alignItems: "center",
@@ -202,119 +306,74 @@ function Lightbox({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          position: "relative",
-          width: "min(860px, 90vw)",
-          maxHeight: "85vh",
-          backgroundColor: "#0A0A0A",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 12,
-          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          alignItems: "center",
+          gap: 20,
+          maxWidth: "80vw",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: "14px 20px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span
-              style={{
-                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-                fontSize: 18,
-                fontWeight: 500,
-                color: "rgba(255,255,255,0.75)",
-                letterSpacing: "-0.04em",
-              }}
-            >
-              {item.title}
-            </span>
-            {item.year && (
-              <span
-                style={{
-                  fontFamily: "var(--font-dm-mono), monospace",
-                  fontSize: 11,
-                  color: "rgba(255,255,255,0.25)",
-                }}
-              >
-                {item.year}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={onClose}
+        {item.thumbnail?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.thumbnail.url}
+            alt={item.title}
             style={{
-              width: 28,
-              height: 28,
+              maxWidth: "80vw",
+              maxHeight: "80vh",
+              objectFit: "contain",
+              borderRadius: 6,
+              display: "block",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "60vw",
+              aspectRatio: "16/9",
+              background: "rgba(255,255,255,0.04)",
+              borderRadius: 8,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 6,
-              color: "rgba(255,255,255,0.5)",
-              fontSize: 16,
-              cursor: "pointer",
-              lineHeight: 1,
-              flexShrink: 0,
             }}
           >
-            ×
-          </button>
-        </div>
-
-        {/* Content */}
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            minHeight: 0,
-          }}
-        >
-          {item.thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.thumbnail}
-              alt={item.title}
+            <span
               style={{
-                maxWidth: "100%",
-                maxHeight: "60vh",
-                objectFit: "contain",
-                borderRadius: 6,
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                aspectRatio: "16/9",
-                background: "rgba(255,255,255,0.04)",
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                fontFamily: "var(--font-dm-mono), monospace",
+                fontSize: 11,
+                color: "rgba(255,255,255,0.15)",
               }}
             >
-              <span
-                style={{
-                  fontFamily: "var(--font-dm-mono), monospace",
-                  fontSize: 11,
-                  color: "rgba(255,255,255,0.15)",
-                }}
-              >
-                no preview
-              </span>
+              no preview
+            </span>
+          </div>
+        )}
+
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontSize: 18,
+              fontWeight: 500,
+              color: "rgba(255,255,255,0.85)",
+              letterSpacing: "-0.04em",
+              marginBottom: 6,
+            }}
+          >
+            {item.title}
+          </div>
+          {item.about && (
+            <div
+              style={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontSize: 13,
+                color: "rgba(255,255,255,0.4)",
+                lineHeight: 1.5,
+                maxWidth: 480,
+              }}
+            >
+              {item.about}
             </div>
           )}
         </div>
@@ -323,15 +382,43 @@ function Lightbox({
   );
 }
 
+// ─── Masonry grid ─────────────────────────────────────────────────────────────
+
+const SKELETON_HEIGHTS = [220, 300, 180, 260, 200, 340];
+
+function MasonryGrid({
+  items,
+  onCardClick,
+}: {
+  items: LabItem[] | null;
+  onCardClick: (item: LabItem) => void;
+}) {
+  return (
+    <div
+      style={{
+        columns: "3 280px",
+        gap: 12,
+      }}
+    >
+      {items === null
+        ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
+        : items.length === 0
+        ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
+        : items.map((item) => (
+            <LabCard key={item._id} item={item} onClick={onCardClick} />
+          ))}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BSidePage() {
-  const [loaded, setLoaded]           = useState(false);
-  const [labItems, setLabItems]       = useState<LabItem[] | null>(null);
+  const [loaded, setLoaded]             = useState(false);
+  const [labItems, setLabItems]         = useState<LabItem[] | null>(null);
   const [lightboxItem, setLightboxItem] = useState<LabItem | null>(null);
   const fetchedRef = useRef(false);
 
-  // Start fetching immediately — data arrives in background while animation plays
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
@@ -341,7 +428,6 @@ export default function BSidePage() {
       .catch(() => setLabItems([]));
   }, []);
 
-  // Force dark body bg while on this page
   useEffect(() => {
     const prev = document.body.style.backgroundColor;
     document.body.style.backgroundColor = "#0A0A0A";
@@ -356,23 +442,22 @@ export default function BSidePage() {
     }
   };
 
-  const showSkeletons = loaded && labItems === null;
-  const showCards     = loaded && labItems !== null;
-
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0A", position: "relative" }}>
-      {/* CD loader — shown until animation completes */}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0A0A0A",
+        position: "relative",
+        overflowY: "auto",
+      }}
+    >
+      {/* CD loader */}
       {!loaded && (
         <BsideLoader direction="enter" onComplete={() => setLoaded(true)} />
       )}
 
-      {/* ShaderGradient — fades in after loader */}
-      <div
-        style={{
-          opacity: loaded ? 1 : 0,
-          transition: "opacity 0.5s ease",
-        }}
-      >
+      {/* ShaderGradient */}
+      <div style={{ opacity: loaded ? 1 : 0, transition: "opacity 0.5s ease" }}>
         <BsideGradient />
       </div>
 
@@ -424,30 +509,8 @@ export default function BSidePage() {
           }}
         />
 
-        {/* Grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: 12,
-          }}
-        >
-          {showSkeletons &&
-            Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-
-          {showCards &&
-            (labItems!.length > 0
-              ? labItems!.map((item, i) => (
-                  <LabCard
-                    key={item._id}
-                    item={item}
-                    index={i}
-                    onClick={handleCardClick}
-                  />
-                ))
-              : Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            )}
-        </div>
+        {/* Masonry grid */}
+        <MasonryGrid items={loaded ? labItems : null} onCardClick={handleCardClick} />
       </div>
 
       {/* Lightbox */}
