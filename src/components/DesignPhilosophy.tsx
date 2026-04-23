@@ -402,7 +402,7 @@ export default function DesignPhilosophy() {
   return (
     <div
       ref={containerRef}
-      style={{ position: "relative", width: "100%", height: "100%", overflow: "visible" }}
+      style={{ position: "relative", width: "100%", height: "100%" }}
     >
       <canvas
         ref={canvasRef}
