@@ -108,6 +108,10 @@ export default function DesignPhilosophy() {
   const [ringHover, setRingHover]       = useState<RingHover | null>(null);
   const [centerHovered, setCenterHovered] = useState(false);
   const [canvasSize, setCanvasSize]     = useState({ w: 0, h: 0 });
+  const [ringLabelData, setRingLabelData] = useState<{ x: number; y: number; label: string }[] | null>(null);
+
+  // Track currently hovered ring index to avoid redundant state updates on mousemove
+  const ringHoverIdxRef = useRef(-1);
 
   const draw = useCallback((timestamp: number) => {
     const canvas = canvasRef.current;
@@ -222,18 +226,7 @@ export default function DesignPhilosophy() {
           ctx.fill();
         }
 
-        // Node labels when ring is hovered
-        if (isRingHovered) {
-          const cosA = Math.cos(ang);
-          const sinA = Math.sin(ang);
-          const lx   = cx + cosA * (ring.radius + 20);
-          const ly   = cy + sinA * (ring.radius + 20);
-          ctx.font        = "10px 'DM Mono', monospace";
-          ctx.fillStyle   = "#3A3A3A";
-          ctx.textAlign   = Math.abs(cosA) < 0.3 ? "center" : (cosA > 0 ? "left" : "right");
-          ctx.textBaseline = sinA > 0.3 ? "top" : (sinA < -0.3 ? "bottom" : "middle");
-          ctx.fillText(ring.nodes[ni].n, lx, ly);
-        }
+        // Ring node labels are now rendered as HTML (see below) to avoid canvas clipping
       }
       nodePositionsRef.current[ri] = newPositions;
     }
@@ -294,11 +287,30 @@ export default function DesignPhilosophy() {
       for (let ri = 0; ri < rings.length; ri++) {
         if (Math.abs(distC - rings[ri].radius) < 18) {
           setRingHover({ ringIdx: ri, x: mx, y: my });
+          // Snapshot positions once when ring hover changes (rotation stops, so positions are stable)
+          if (ringHoverIdxRef.current !== ri) {
+            ringHoverIdxRef.current = ri;
+            const positions = nodePositionsRef.current[ri];
+            setRingLabelData(
+              positions.map((pos, ni) => ({ x: pos.x, y: pos.y, label: rings[ri].nodes[ni].n }))
+            );
+          }
           foundRing = true;
           break;
         }
       }
-      if (!foundRing) setRingHover(null);
+      if (!foundRing) {
+        setRingHover(null);
+        if (ringHoverIdxRef.current !== -1) {
+          ringHoverIdxRef.current = -1;
+          setRingLabelData(null);
+        }
+      }
+    } else {
+      if (ringHoverIdxRef.current !== -1) {
+        ringHoverIdxRef.current = -1;
+        setRingLabelData(null);
+      }
     }
   }, []);
 
@@ -306,6 +318,8 @@ export default function DesignPhilosophy() {
     mouseRef.current = { x: -9999, y: -9999 };
     setNodeHover(null);
     setRingHover(null);
+    setRingLabelData(null);
+    ringHoverIdxRef.current = -1;
     setCenterHovered(false);
   }, []);
 
@@ -424,6 +438,43 @@ export default function DesignPhilosophy() {
           }}
         />
       )}
+
+      {/* Ring node labels — HTML so they never clip at canvas edge */}
+      {ringLabelData && canvasSize.w > 0 && ringLabelData.map((item, i) => {
+        const W = canvasSize.w;
+        const H = canvasSize.h;
+        const isBottomFifth = item.y > H * 0.80;
+        const isRightHalf   = item.x > W * 0.50;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              pointerEvents: "none",
+              fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+              fontSize: 9,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              color: "#3A3A3A",
+              whiteSpace: "nowrap",
+              zIndex: 8,
+              // Vertical: below by default, above if in bottom 20%
+              ...(isBottomFifth
+                ? { top: item.y - 18 }
+                : { top: item.y + 10 }
+              ),
+              // Horizontal: right-edge of label aligns to node if right half,
+              // otherwise centered on node
+              ...(isRightHalf
+                ? { right: W - item.x + 4, textAlign: "right" as const }
+                : { left: item.x, transform: "translateX(-50%)" }
+              ),
+            }}
+          >
+            {item.label}
+          </div>
+        );
+      })}
 
       {/* Ring hover pill */}
       {ringHover && activeRing && (

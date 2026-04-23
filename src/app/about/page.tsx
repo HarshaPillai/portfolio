@@ -22,18 +22,16 @@ const labelStyle: React.CSSProperties = {
 
 export default function AboutPage() {
   return (
-    <div className="about-layout" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* Left column */}
-      <div
-        className="about-bio"
-        style={{
-          flex: "0 0 60%",
-          height: "100vh",
-          overflowY: "auto",
-          padding: "60px 36px 60px 60px",
-          boxSizing: "border-box",
-        }}
-      >
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", overflowY: "auto" }}>
+
+      {/* Top — diagram, full width, ~50vh */}
+      <div style={{ height: "50vh", width: "100%", flexShrink: 0 }}>
+        <DesignPhilosophy />
+      </div>
+
+      {/* Bottom — content, constrained to 50% width, left-aligned */}
+      <div style={{ padding: "48px 60px 80px", maxWidth: "50%", boxSizing: "border-box" }}>
+
         {/* Opening line */}
         <p
           style={{
@@ -49,7 +47,7 @@ export default function AboutPage() {
         </p>
 
         {/* Bio paragraphs */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 36 }}>
           <p style={bodyStyle}>
             Born in Switzerland, raised in Germany, and of Indian heritage, she
             naturally moves between cultures, languages, and ways of seeing the
@@ -81,9 +79,9 @@ export default function AboutPage() {
         </div>
 
         {/* Divider */}
-        <div style={{ height: 1, backgroundColor: "rgba(0,0,0,0.08)", margin: "36px 0" }} />
+        <div style={{ height: 1, backgroundColor: "rgba(0,0,0,0.08)", marginBottom: 28 }} />
 
-        {/* Metadata grid */}
+        {/* Status metadata */}
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           <div style={{
             display: "grid", gridTemplateColumns: "110px 1fr",
@@ -128,7 +126,7 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Links row */}
+        {/* Links */}
         <div style={{ display: "flex", gap: 0, alignItems: "center", marginTop: 8 }}>
           {[
             { label: "Email",    href: "mailto:harsha@harshapillai.com" },
@@ -157,11 +155,6 @@ export default function AboutPage() {
             </span>
           ))}
         </div>
-      </div>
-
-      {/* Right column — DesignPhilosophy constellation */}
-      <div className="about-constellation" style={{ flex: "0 0 40%", height: "100vh", overflow: "hidden" }}>
-        <DesignPhilosophy />
       </div>
     </div>
   );

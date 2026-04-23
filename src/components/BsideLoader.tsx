@@ -8,15 +8,15 @@ type Props = {
   onComplete: () => void;
 };
 
-const CD_SIZE = 140;
+const CD_SIZE  = 140;
 const DROP_DUR = 700;
 const PAUSE_DUR = 180;
-const FLIP_DUR = 1100;
+const FLIP_DUR  = 1100;
 const FLOAT_DUR = 520;
-const BG_DUR = 600;
+const BG_DUR    = 600;
 
-function easeOut3(t: number) { return 1 - Math.pow(1 - t, 3); }
-function easeIn2(t: number)  { return t * t; }
+function easeOut3(t: number)   { return 1 - Math.pow(1 - t, 3); }
+function easeIn2(t: number)    { return t * t; }
 function easeInOut3(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
@@ -27,25 +27,6 @@ function dropEase(t: number) {
   const bt = (t - 0.82) / 0.18;
   return 1.04 + (1.0 - 1.04) * easeInOut3(bt);
 }
-
-function hexToRgb(hex: string): [number, number, number] {
-  return [
-    parseInt(hex.slice(1, 3), 16),
-    parseInt(hex.slice(3, 5), 16),
-    parseInt(hex.slice(5, 7), 16),
-  ];
-}
-
-function lerpRgb(
-  a: [number, number, number],
-  b: [number, number, number],
-  t: number
-): string {
-  return `rgb(${Math.round(lerp(a[0], b[0], t))},${Math.round(lerp(a[1], b[1], t))},${Math.round(lerp(a[2], b[2], t))})`;
-}
-
-const LIGHT_RGB = hexToRgb("#FFFFFF");
-const DARK_RGB  = hexToRgb("#0A0A0A");
 
 function CDFace({ side }: { side: "a" | "b" }) {
   const gradId = side === "a" ? "cdGradA" : "cdGradB";
@@ -64,8 +45,9 @@ function CDFace({ side }: { side: "a" | "b" }) {
         <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
         <circle cx="70" cy="70" r="32" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
         <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
-        <circle cx="70" cy="70" r="11" fill="#1a0800" />
-        <circle cx="70" cy="70" r="4"  fill="#2a1000" />
+        {/* White label area + gray spindle — matches a real iridescent CD */}
+        <circle cx="70" cy="70" r="11" fill="rgba(255,255,255,0.55)" />
+        <circle cx="70" cy="70" r="4"  fill="rgba(180,180,180,0.6)" />
       </svg>
     );
   }
@@ -91,28 +73,28 @@ function CDFace({ side }: { side: "a" | "b" }) {
 }
 
 function LoaderOverlay({ direction, onComplete }: Props) {
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const bgRef      = useRef<HTMLDivElement>(null);
   const cdWrapRef  = useRef<HTMLDivElement>(null);
   const aSideRef   = useRef<HTMLDivElement>(null);
   const bSideRef   = useRef<HTMLDivElement>(null);
   const statusRef  = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const overlay = overlayRef.current;
+    const bgEl    = bgRef.current;
     const cdWrap  = cdWrapRef.current;
     const aSide   = aSideRef.current;
     const bSide   = bSideRef.current;
     const statusEl = statusRef.current;
-    if (!overlay || !cdWrap || !aSide || !bSide) return;
+    if (!bgEl || !cdWrap || !aSide || !bSide) return;
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const targetY  = vh / 2 - CD_SIZE / 2;
-    const startY   = -(CD_SIZE + 30);
-    const bgFrom   = direction === "enter" ? LIGHT_RGB : DARK_RGB;
-    const bgTo     = direction === "enter" ? DARK_RGB  : LIGHT_RGB;
+    const targetY = vh / 2 - CD_SIZE / 2;
+    const startY  = -(CD_SIZE + 30);
 
-    // Initial face visibility: entering=A-Side first, exiting=B-Side first
+    // bg color components for alpha-fade (fades to transparent, not to opposite color)
+    const [bgR, bgG, bgB] = direction === "enter" ? [255, 255, 255] : [10, 10, 10];
+
     if (direction === "enter") {
       aSide.style.display = "block";
       bSide.style.display = "none";
@@ -121,45 +103,41 @@ function LoaderOverlay({ direction, onComplete }: Props) {
       bSide.style.display = "block";
     }
 
-    const setStatus = (msg: string) => {
-      if (statusEl) statusEl.textContent = msg;
-    };
-
     const setCdTransform = (y: number, scaleX = 1, opacity = 1) => {
       const cdHalf = CD_SIZE / 2;
-      cdWrap.style.transform  = `translateX(${vw / 2 - cdHalf}px) translateY(${y}px) scaleX(${scaleX})`;
-      cdWrap.style.opacity    = String(opacity);
+      cdWrap.style.transform = `translateX(${vw / 2 - cdHalf}px) translateY(${y}px) scaleX(${scaleX})`;
+      cdWrap.style.opacity   = String(opacity);
     };
 
     type Phase = "drop" | "pause" | "flip" | "float" | "done";
     let phase: Phase = "drop";
-    let phaseStart = 0;
-    let bgStart = 0;
+    let phaseStart  = 0;
+    let bgStart     = 0;
     let faceSwapped = false;
     let rafId: number;
 
     const tick = (now: number) => {
       if (!phaseStart) phaseStart = now;
-
       const elapsed = now - phaseStart;
 
       if (phase === "drop") {
-        setStatus("dropping in...");
+        if (statusEl) statusEl.textContent = "dropping in...";
         const t = Math.min(elapsed / DROP_DUR, 1);
         setCdTransform(lerp(startY, targetY, dropEase(t)));
         if (t >= 1) { phase = "pause"; phaseStart = now; }
 
       } else if (phase === "pause") {
-        if (elapsed >= PAUSE_DUR) { phase = "flip"; phaseStart = now; setStatus(direction === "enter" ? "flipping b-side..." : "flipping a-side..."); }
+        if (elapsed >= PAUSE_DUR) {
+          phase = "flip";
+          phaseStart = now;
+          if (statusEl) statusEl.textContent = direction === "enter" ? "flipping b-side..." : "flipping a-side...";
+        }
 
       } else if (phase === "flip") {
-        const t  = Math.min(elapsed / FLIP_DUR, 1);
-        let scaleX: number;
-        if (t < 0.5) {
-          scaleX = 1 - easeInOut3(t * 2);
-        } else {
-          scaleX = easeInOut3((t - 0.5) * 2);
-        }
+        const t = Math.min(elapsed / FLIP_DUR, 1);
+        const scaleX = t < 0.5
+          ? 1 - easeInOut3(t * 2)
+          : easeInOut3((t - 0.5) * 2);
         setCdTransform(targetY, scaleX);
 
         if (t >= 0.5 && !faceSwapped) {
@@ -173,35 +151,30 @@ function LoaderOverlay({ direction, onComplete }: Props) {
           }
         }
 
+        // Start bg fade at 72% through flip
         if (t >= 0.72 && !bgStart) bgStart = now;
         if (bgStart) {
-          const bgT = Math.min((now - bgStart) / BG_DUR, 1);
-          overlay.style.backgroundColor = lerpRgb(bgFrom, bgTo, easeInOut3(bgT));
-          const textT = easeInOut3(bgT);
-          const textAlpha = direction === "enter"
-            ? lerp(0.45, 0.25, textT)
-            : lerp(0.25, 0.45, textT);
-          if (statusEl) statusEl.style.color = `rgba(128,128,128,${textAlpha})`;
+          const bgT   = Math.min((now - bgStart) / BG_DUR, 1);
+          const alpha = 1 - easeInOut3(bgT);
+          bgEl.style.background = `rgba(${bgR},${bgG},${bgB},${alpha})`;
+          if (statusEl) statusEl.style.opacity = String(alpha);
         }
 
-        if (t >= 1) { phase = "float"; phaseStart = now; setStatus("loading..."); }
+        if (t >= 1) { phase = "float"; phaseStart = now; if (statusEl) statusEl.textContent = "loading..."; }
 
       } else if (phase === "float") {
-        setStatus("loading...");
         const t = Math.min(elapsed / FLOAT_DUR, 1);
         const y = lerp(targetY, startY, easeIn2(t));
         setCdTransform(y, 1, 1 - easeIn2(t));
 
         if (bgStart) {
-          const bgT = Math.min((now - bgStart) / BG_DUR, 1);
-          overlay.style.backgroundColor = lerpRgb(bgFrom, bgTo, easeInOut3(bgT));
+          const bgT   = Math.min((now - bgStart) / BG_DUR, 1);
+          const alpha = 1 - easeInOut3(bgT);
+          bgEl.style.background = `rgba(${bgR},${bgG},${bgB},${alpha})`;
+          if (statusEl) statusEl.style.opacity = String(alpha);
         }
 
-        if (t >= 1) {
-          phase = "done";
-          onComplete();
-          return;
-        }
+        if (t >= 1) { phase = "done"; onComplete(); return; }
       }
 
       if (phase !== "done") rafId = requestAnimationFrame(tick);
@@ -214,55 +187,63 @@ function LoaderOverlay({ direction, onComplete }: Props) {
   const isEnter = direction === "enter";
 
   return (
-    <div
-      ref={overlayRef}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9000,
-        backgroundColor: isEnter ? "#FFFFFF" : "#0A0A0A",
-        overflow: "hidden",
-      }}
-    >
-      {/* CD wrapper — positioned via transform in RAF */}
+    <>
+      {/* White backdrop ensures no black flash when dark overlay fades on exit */}
       <div
-        ref={cdWrapRef}
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: CD_SIZE,
-          height: CD_SIZE,
-          transformOrigin: "center center",
+          position: "fixed", inset: 0,
+          zIndex: 8999,
+          background: "#FFFFFF",
+          pointerEvents: "none",
         }}
-      >
-        <div ref={aSideRef} style={{ position: "absolute", inset: 0 }}>
-          <CDFace side="a" />
-        </div>
-        <div ref={bSideRef} style={{ position: "absolute", inset: 0 }}>
-          <CDFace side="b" />
-        </div>
-      </div>
+      />
 
-      {/* Status line */}
-      <div
-        ref={statusRef}
-        style={{
-          position: "absolute",
-          bottom: 32,
-          left: "50%",
-          transform: "translateX(-50%)",
-          fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
-          fontSize: 10,
-          letterSpacing: "0.12em",
-          color: isEnter ? "rgba(58,58,58,0.4)" : "rgba(255,255,255,0.28)",
-          whiteSpace: "nowrap",
-          userSelect: "none",
-        }}
-      >
-        dropping in...
+      {/* Main overlay — bg layer is separate from CD so opacity doesn't compound */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 9000, overflow: "hidden" }}>
+        {/* Background layer — fades to transparent via rgba alpha */}
+        <div
+          ref={bgRef}
+          style={{
+            position: "absolute", inset: 0,
+            background: isEnter ? "rgba(255,255,255,1)" : "rgba(10,10,10,1)",
+          }}
+        />
+
+        {/* CD wrapper — positioned via transform in RAF, unaffected by bg opacity */}
+        <div
+          ref={cdWrapRef}
+          style={{
+            position: "absolute", top: 0, left: 0,
+            width: CD_SIZE, height: CD_SIZE,
+            transformOrigin: "center center",
+            zIndex: 1,
+          }}
+        >
+          <div ref={aSideRef} style={{ position: "absolute", inset: 0 }}>
+            <CDFace side="a" />
+          </div>
+          <div ref={bSideRef} style={{ position: "absolute", inset: 0 }}>
+            <CDFace side="b" />
+          </div>
+        </div>
+
+        {/* Status line */}
+        <div
+          ref={statusRef}
+          style={{
+            position: "absolute", bottom: 32, left: "50%",
+            transform: "translateX(-50%)",
+            fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+            fontSize: 10, letterSpacing: "0.12em",
+            color: isEnter ? "rgba(58,58,58,0.4)" : "rgba(200,200,200,0.5)",
+            whiteSpace: "nowrap", userSelect: "none",
+            zIndex: 1,
+          }}
+        >
+          dropping in...
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
