@@ -93,7 +93,8 @@ export const getLandingProjects = groq`
     ndaTitle,
     isLive,
     isExternal,
-    externalUrl
+    externalUrl,
+    order
   }
 `;
 

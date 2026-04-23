@@ -74,6 +74,7 @@ export type LandingProject = {
   isLive?: boolean;
   isExternal?: boolean;
   externalUrl?: string;
+  order?: number;
 };
 
 // ─── v2 types (new schema) ────────────────────────────────────────────────────
