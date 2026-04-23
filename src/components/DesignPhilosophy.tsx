@@ -446,35 +446,50 @@ export default function DesignPhilosophy() {
         const cx = W / 2;
         const cy = H / 2;
 
-        // Get angle of this node relative to center
         const dx = item.x - cx;
         const dy = item.y - cy;
         const angle = Math.atan2(dy, dx);
 
-        // Offset label outward from the node by 16px along the same angle
         const OFFSET = 16;
         const lx = item.x + Math.cos(angle) * OFFSET;
         const ly = item.y + Math.sin(angle) * OFFSET;
 
-        // Anchor: right half left-aligns from lx; left half right-aligns to lx
         const isRight  = dx >= 0;
         const isBottom = dy >= 0;
+
+        // Estimate label width (~6px per char) and check for edge overflow
+        const estimatedWidth  = item.label.length * 6;
+        const wouldClipRight  = isRight  && (lx + estimatedWidth > W - 8);
+        const wouldClipLeft   = !isRight && (lx - estimatedWidth < 8);
+
+        const sharedStyle: React.CSSProperties = {
+          position: "absolute",
+          pointerEvents: "none",
+          fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+          fontSize: 9,
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          color: "#3A3A3A",
+          whiteSpace: "nowrap",
+          zIndex: 8,
+        };
+
+        // Fall back to centered-below when radial position would clip
+        if (wouldClipRight || wouldClipLeft) {
+          return (
+            <div key={i} style={{ ...sharedStyle, left: item.x, top: item.y + 10, transform: "translateX(-50%)" }}>
+              {item.label}
+            </div>
+          );
+        }
 
         return (
           <div
             key={i}
             style={{
-              position: "absolute",
-              pointerEvents: "none",
-              fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
-              fontSize: 9,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              color: "#3A3A3A",
-              whiteSpace: "nowrap",
-              zIndex: 8,
-              ...(isRight  ? { left: lx }      : { right: W - lx }),
-              ...(isBottom ? { top: ly }        : { bottom: H - ly }),
+              ...sharedStyle,
+              ...(isRight  ? { left: lx }    : { right: W - lx }),
+              ...(isBottom ? { top: ly }      : { bottom: H - ly }),
             }}
           >
             {item.label}
