@@ -24,25 +24,23 @@ export default function AboutPage() {
   return (
     <div style={{ display: "flex", gap: 48, alignItems: "flex-start" }}>
 
-      {/* Left column — bio + status, scrolls with page */}
+      {/* Left column — bio only, scrolls with page */}
       <div style={{ flex: 1, padding: "60px 0 80px 60px", minWidth: 0 }}>
 
         {/* Opening line */}
-        <p
-          style={{
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 20, fontWeight: 500, fontStyle: "italic",
-            letterSpacing: "-0.03em", color: "#3A3A3A",
-            lineHeight: 1.5, margin: "0 0 28px 0",
-          }}
-        >
+        <p style={{
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+          fontSize: 20, fontWeight: 500, fontStyle: "italic",
+          letterSpacing: "-0.03em", color: "#3A3A3A",
+          lineHeight: 1.5, margin: "0 0 28px 0",
+        }}>
           Before she was a product designer, Harsha was an{" "}
           <O>architectural designer</O>, an <O>engineer</O>, a{" "}
           <O>competitive dancer</O>, and a kid obsessed with puzzles.
         </p>
 
         {/* Bio paragraphs */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 36 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <p style={bodyStyle}>
             Born in Switzerland, raised in Germany, and of Indian heritage, she
             naturally moves between cultures, languages, and ways of seeing the
@@ -72,34 +70,48 @@ export default function AboutPage() {
             Ultimately, trying to live as many lives as possible in this one.
           </p>
         </div>
+      </div>
 
-        {/* Divider */}
-        <div style={{ height: 1, backgroundColor: "rgba(0,0,0,0.08)", marginBottom: 28 }} />
+      {/* Right column — orbit diagram + status, sticky */}
+      <div style={{
+        flex: 1,
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+        overflow: "visible",
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        padding: "60px 60px 60px 0",
+      }}>
+        <DesignPhilosophy />
 
-        {/* Status metadata */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        {/* Status metadata — below diagram */}
+        <div style={{ display: "flex", flexDirection: "column", marginTop: 40 }}>
+
           <div style={{
             display: "grid", gridTemplateColumns: "110px 1fr",
-            gap: "0 16px", paddingBottom: 20, marginBottom: 20,
+            gap: "0 16px", paddingBottom: 16, marginBottom: 16,
             borderBottom: "1px solid rgba(0,0,0,0.06)",
           }}>
             <span style={labelStyle}>Most recently</span>
             <span style={{
               fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: 14, fontWeight: 500,
+              fontSize: 13, fontWeight: 500,
               letterSpacing: "-0.03em", color: "#3A3A3A", lineHeight: 1.5,
             }}>Product Designer &amp; Strategist at ProductStak</span>
           </div>
 
           <div style={{
             display: "grid", gridTemplateColumns: "110px 1fr",
-            gap: "0 16px", paddingBottom: 20, marginBottom: 20,
+            gap: "0 16px", paddingBottom: 16, marginBottom: 16,
             borderBottom: "1px solid rgba(0,0,0,0.06)",
           }}>
             <span style={labelStyle}>Looking for</span>
             <span style={{
               fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: 14, fontWeight: 500,
+              fontSize: 13, fontWeight: 500,
               letterSpacing: "-0.03em", color: "#3A3A3A", lineHeight: 1.6,
             }}>
               A role where strategy and implementation are not separate jobs.
@@ -110,7 +122,7 @@ export default function AboutPage() {
 
           <div style={{
             display: "grid", gridTemplateColumns: "110px 1fr",
-            gap: "0 16px", paddingBottom: 20,
+            gap: "0 16px",
           }}>
             <span style={{
               fontFamily: "var(--font-dm-mono), monospace",
@@ -119,51 +131,8 @@ export default function AboutPage() {
             }}>Available now</span>
             <span />
           </div>
-        </div>
 
-        {/* Links */}
-        <div style={{ display: "flex", gap: 0, alignItems: "center", marginTop: 8 }}>
-          {[
-            { label: "Email",    href: "mailto:harsha@harshapillai.com" },
-            { label: "LinkedIn", href: "https://linkedin.com/in/harshapillai" },
-            { label: "Read.cv",  href: "https://read.cv/harshapillai" },
-          ].map(({ label, href }, i, arr) => (
-            <span key={label} style={{ display: "flex", alignItems: "center" }}>
-              <a
-                href={href}
-                target={href.startsWith("mailto") ? undefined : "_blank"}
-                rel="noopener noreferrer"
-                style={{
-                  fontFamily: "var(--font-dm-mono), monospace",
-                  fontSize: 12, letterSpacing: "-0.04em",
-                  color: "#3A3A3A", textDecoration: "none", transition: "color 0.15s",
-                }}
-                onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = "#F35900"; }}
-                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = "#3A3A3A"; }}
-              >{label}</a>
-              {i < arr.length - 1 && (
-                <span style={{
-                  fontFamily: "var(--font-dm-mono), monospace",
-                  fontSize: 12, color: "rgba(58,58,58,0.3)", margin: "0 10px",
-                }}>·</span>
-              )}
-            </span>
-          ))}
         </div>
-      </div>
-
-      {/* Right column — orbit diagram, sticky */}
-      <div
-        style={{
-          flex: 1,
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-          overflow: "visible",
-          flexShrink: 0,
-        }}
-      >
-        <DesignPhilosophy />
       </div>
     </div>
   );
