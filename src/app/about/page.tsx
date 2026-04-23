@@ -22,15 +22,10 @@ const labelStyle: React.CSSProperties = {
 
 export default function AboutPage() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", overflowY: "auto" }}>
+    <div style={{ display: "flex", gap: 48, alignItems: "flex-start" }}>
 
-      {/* Top — diagram, full width, ~50vh */}
-      <div style={{ height: "50vh", width: "100%", flexShrink: 0 }}>
-        <DesignPhilosophy />
-      </div>
-
-      {/* Bottom — content, constrained to 50% width, left-aligned */}
-      <div style={{ padding: "48px 60px 80px", maxWidth: "50%", boxSizing: "border-box" }}>
+      {/* Left column — bio + status, scrolls with page */}
+      <div style={{ flex: 1, padding: "60px 0 80px 60px", minWidth: 0 }}>
 
         {/* Opening line */}
         <p
@@ -82,7 +77,7 @@ export default function AboutPage() {
         <div style={{ height: 1, backgroundColor: "rgba(0,0,0,0.08)", marginBottom: 28 }} />
 
         {/* Status metadata */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{
             display: "grid", gridTemplateColumns: "110px 1fr",
             gap: "0 16px", paddingBottom: 20, marginBottom: 20,
@@ -155,6 +150,20 @@ export default function AboutPage() {
             </span>
           ))}
         </div>
+      </div>
+
+      {/* Right column — orbit diagram, sticky */}
+      <div
+        style={{
+          flex: 1,
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          overflow: "visible",
+          flexShrink: 0,
+        }}
+      >
+        <DesignPhilosophy />
       </div>
     </div>
   );

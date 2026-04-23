@@ -41,13 +41,14 @@ function CDFace({ side }: { side: "a" | "b" }) {
           </radialGradient>
         </defs>
         <circle cx="70" cy="70" r="68" fill={`url(#${gradId})`} />
-        <circle cx="70" cy="70" r="56" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
-        <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
-        <circle cx="70" cy="70" r="32" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
-        <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6" />
-        {/* White label area + gray spindle — matches a real iridescent CD */}
-        <circle cx="70" cy="70" r="11" fill="rgba(255,255,255,0.55)" />
-        <circle cx="70" cy="70" r="4"  fill="rgba(180,180,180,0.6)" />
+        <circle cx="70" cy="70" r="56" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+        <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+        <circle cx="70" cy="70" r="32" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+        <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
+        {/* Nearly-transparent label zone — gradient shows through like a real CD */}
+        <circle cx="70" cy="70" r="22" fill="rgba(255,255,255,0.04)" />
+        {/* Spindle hole */}
+        <circle cx="70" cy="70" r="6"  fill="rgba(0,0,0,0.2)" />
       </svg>
     );
   }
@@ -62,12 +63,14 @@ function CDFace({ side }: { side: "a" | "b" }) {
       </defs>
       <circle cx="70" cy="70" r="68" fill={`url(#${gradId})`} />
       <circle cx="70" cy="70" r="68" fill="none" stroke="rgba(255,85,0,0.18)" strokeWidth="1.5" />
-      <circle cx="70" cy="70" r="56" fill="none" stroke="rgba(255,85,0,0.07)" strokeWidth="0.6" />
-      <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(255,85,0,0.07)" strokeWidth="0.6" />
-      <circle cx="70" cy="70" r="32" fill="none" stroke="rgba(255,85,0,0.07)" strokeWidth="0.6" />
-      <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,85,0,0.07)" strokeWidth="0.6" />
-      <circle cx="70" cy="70" r="11" fill="#050200" />
-      <circle cx="70" cy="70" r="4"  fill="#0A0500" />
+      <circle cx="70" cy="70" r="56" fill="none" stroke="rgba(255,85,0,0.08)" strokeWidth="0.6" />
+      <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(255,85,0,0.08)" strokeWidth="0.6" />
+      <circle cx="70" cy="70" r="32" fill="none" stroke="rgba(255,85,0,0.08)" strokeWidth="0.6" />
+      <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,85,0,0.08)" strokeWidth="0.6" />
+      {/* Nearly-transparent label zone */}
+      <circle cx="70" cy="70" r="22" fill="rgba(255,255,255,0.04)" />
+      {/* Spindle hole */}
+      <circle cx="70" cy="70" r="6"  fill="rgba(0,0,0,0.2)" />
     </svg>
   );
 }
