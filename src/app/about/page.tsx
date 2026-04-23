@@ -86,53 +86,6 @@ export default function AboutPage() {
         padding: "60px 60px 60px 0",
       }}>
         <DesignPhilosophy />
-
-        {/* Status metadata — below diagram */}
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 40 }}>
-
-          <div style={{
-            display: "grid", gridTemplateColumns: "110px 1fr",
-            gap: "0 16px", paddingBottom: 16, marginBottom: 16,
-            borderBottom: "1px solid rgba(0,0,0,0.06)",
-          }}>
-            <span style={labelStyle}>Most recently</span>
-            <span style={{
-              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: 13, fontWeight: 500,
-              letterSpacing: "-0.03em", color: "#3A3A3A", lineHeight: 1.5,
-            }}>Product Designer &amp; Strategist at ProductStak</span>
-          </div>
-
-          <div style={{
-            display: "grid", gridTemplateColumns: "110px 1fr",
-            gap: "0 16px", paddingBottom: 16, marginBottom: 16,
-            borderBottom: "1px solid rgba(0,0,0,0.06)",
-          }}>
-            <span style={labelStyle}>Looking for</span>
-            <span style={{
-              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: 13, fontWeight: 500,
-              letterSpacing: "-0.03em", color: "#3A3A3A", lineHeight: 1.6,
-            }}>
-              A role where strategy and implementation are not separate jobs.
-              Fast-moving, iterative, genuinely trying to build something that
-              matters. Industry matters less than energy.
-            </span>
-          </div>
-
-          <div style={{
-            display: "grid", gridTemplateColumns: "110px 1fr",
-            gap: "0 16px",
-          }}>
-            <span style={{
-              fontFamily: "var(--font-dm-mono), monospace",
-              fontSize: 10, letterSpacing: "0.02em",
-              textTransform: "uppercase", color: "#F35900", lineHeight: 1.4,
-            }}>Available now</span>
-            <span />
-          </div>
-
-        </div>
       </div>
     </div>
   );

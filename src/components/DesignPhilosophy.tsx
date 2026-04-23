@@ -6,7 +6,7 @@ const rings = [
   {
     label: "Identity",
     desc: "Shaped by living between worlds",
-    radius: 60,
+    radius: 80,
     speed: 0.00035,
     nodes: [
       {
@@ -30,7 +30,7 @@ const rings = [
   {
     label: "Academic",
     desc: "Trained to think at scale",
-    radius: 120,
+    radius: 160,
     speed: 0.00022,
     nodes: [
       {
@@ -54,7 +54,7 @@ const rings = [
   {
     label: "Condition",
     desc: "Reckoning with what we set in motion",
-    radius: 175,
+    radius: 240,
     speed: 0.00012,
     nodes: [
       {

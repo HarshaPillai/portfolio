@@ -45,10 +45,8 @@ function CDFace({ side }: { side: "a" | "b" }) {
         <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
         <circle cx="70" cy="70" r="32" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
         <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" />
-        {/* Nearly-transparent label zone — gradient shows through like a real CD */}
-        <circle cx="70" cy="70" r="22" fill="rgba(255,255,255,0.04)" />
         {/* Spindle hole */}
-        <circle cx="70" cy="70" r="6"  fill="rgba(0,0,0,0.2)" />
+        <circle cx="70" cy="70" r="5"  fill="rgba(0,0,0,0.15)" />
       </svg>
     );
   }
@@ -67,10 +65,8 @@ function CDFace({ side }: { side: "a" | "b" }) {
       <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(255,85,0,0.08)" strokeWidth="0.6" />
       <circle cx="70" cy="70" r="32" fill="none" stroke="rgba(255,85,0,0.08)" strokeWidth="0.6" />
       <circle cx="70" cy="70" r="20" fill="none" stroke="rgba(255,85,0,0.08)" strokeWidth="0.6" />
-      {/* Nearly-transparent label zone */}
-      <circle cx="70" cy="70" r="22" fill="rgba(255,255,255,0.04)" />
       {/* Spindle hole */}
-      <circle cx="70" cy="70" r="6"  fill="rgba(0,0,0,0.2)" />
+      <circle cx="70" cy="70" r="5"  fill="rgba(0,0,0,0.15)" />
     </svg>
   );
 }
