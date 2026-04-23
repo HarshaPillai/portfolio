@@ -402,7 +402,7 @@ export default function DesignPhilosophy() {
   return (
     <div
       ref={containerRef}
-      style={{ position: "relative", width: "100%", height: "100%" }}
+      style={{ position: "relative", width: "100%", height: "100%", contain: "layout style" }}
     >
       <canvas
         ref={canvasRef}
@@ -413,6 +413,8 @@ export default function DesignPhilosophy() {
           width: "100%",
           height: "100%",
           cursor: (nodeHover || centerHovered) ? "pointer" : "default",
+          willChange: "transform",
+          transform: "translateZ(0)",
         }}
       />
 
