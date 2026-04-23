@@ -443,8 +443,23 @@ export default function DesignPhilosophy() {
       {ringLabelData && canvasSize.w > 0 && ringLabelData.map((item, i) => {
         const W = canvasSize.w;
         const H = canvasSize.h;
-        const isBottomFifth = item.y > H * 0.80;
-        const isRightHalf   = item.x > W * 0.50;
+        const cx = W / 2;
+        const cy = H / 2;
+
+        // Get angle of this node relative to center
+        const dx = item.x - cx;
+        const dy = item.y - cy;
+        const angle = Math.atan2(dy, dx);
+
+        // Offset label outward from the node by 16px along the same angle
+        const OFFSET = 16;
+        const lx = item.x + Math.cos(angle) * OFFSET;
+        const ly = item.y + Math.sin(angle) * OFFSET;
+
+        // Anchor: right half left-aligns from lx; left half right-aligns to lx
+        const isRight  = dx >= 0;
+        const isBottom = dy >= 0;
+
         return (
           <div
             key={i}
@@ -458,17 +473,8 @@ export default function DesignPhilosophy() {
               color: "#3A3A3A",
               whiteSpace: "nowrap",
               zIndex: 8,
-              // Vertical: below by default, above if in bottom 20%
-              ...(isBottomFifth
-                ? { top: item.y - 18 }
-                : { top: item.y + 10 }
-              ),
-              // Horizontal: right-edge of label aligns to node if right half,
-              // otherwise centered on node
-              ...(isRightHalf
-                ? { right: W - item.x + 4, textAlign: "right" as const }
-                : { left: item.x, transform: "translateX(-50%)" }
-              ),
+              ...(isRight  ? { left: lx }      : { right: W - lx }),
+              ...(isBottom ? { top: ly }        : { bottom: H - ly }),
             }}
           >
             {item.label}
