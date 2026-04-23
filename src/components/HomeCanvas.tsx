@@ -22,6 +22,7 @@ const INTRO_H        = INTRO_W * ASPECT;
 const INTRO_BLUR     = 4;
 const INTRO_OPACITY  = 0.5;
 const INTRO_END      = 0.20;
+const NDA_MIN_BLUR   = 8;
 
 type DisplayProject = {
   name: string;
@@ -31,6 +32,7 @@ type DisplayProject = {
   tags: string[];
   slug: string;
   thumbnailUrl?: string;
+  nda: boolean;
   isLive: boolean;
   isExternal: boolean;
   externalUrl?: string;
@@ -45,10 +47,36 @@ function toDisplay(p: LandingProject): DisplayProject {
     tags:         p.tags    || [],
     slug:         p.slug,
     thumbnailUrl: p.thumbnailUrl,
+    nda:          !!p.nda,
     isLive:       p.isLive    !== false,
     isExternal:   p.isExternal === true,
     externalUrl:  p.externalUrl,
   };
+}
+
+function NdaFrameOverlay() {
+  return (
+    <>
+      <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.38)" }} />
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        gap: 7, pointerEvents: "none",
+      }}>
+        <svg width="16" height="20" viewBox="0 0 16 20" fill="none">
+          <rect x="1" y="9" width="14" height="10" rx="2" fill="rgba(255,255,255,0.88)" />
+          <path d="M4 9V6a4 4 0 0 1 8 0v3" stroke="rgba(255,255,255,0.88)" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="8" cy="13.5" r="1.5" fill="rgba(0,0,0,0.3)" />
+        </svg>
+        <span style={{
+          fontFamily: "var(--font-dm-mono), monospace",
+          fontSize: 8, letterSpacing: "0.14em",
+          color: "rgba(255,255,255,0.65)", textTransform: "uppercase",
+        }}>NDA</span>
+      </div>
+    </>
+  );
 }
 
 function MetaRow({
@@ -120,10 +148,11 @@ function NavArrow({
 }
 
 export default function HomeCanvas({ projects }: { projects: LandingProject[] }) {
-  const outerRef      = useRef<HTMLDivElement>(null);
-  const stickyRef     = useRef<HTMLDivElement>(null);
-  const frameRefs     = useRef<(HTMLDivElement | null)[]>([]);
-  const metaRef       = useRef<HTMLDivElement>(null);
+  const outerRef         = useRef<HTMLDivElement>(null);
+  const stickyRef        = useRef<HTMLDivElement>(null);
+  const frameRefs        = useRef<(HTMLDivElement | null)[]>([]);
+  const ndaOverlayRefs   = useRef<(HTMLDivElement | null)[]>([]);
+  const metaRef          = useRef<HTMLDivElement>(null);
   const introTextRef  = useRef<HTMLDivElement>(null);
   const scrollProgRef = useRef(0);
   const lastActiveI   = useRef(-1);
@@ -195,15 +224,32 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
         const blur   = isIntro ? INTRO_BLUR + (orbitBlur - INTRO_BLUR) * ease : orbitBlur;
         const op     = isIntro ? INTRO_OPACITY + (orbitOp - INTRO_OPACITY) * ease : orbitOp;
 
+        const isNda    = displayProjectsRef.current[i]?.nda ?? false;
+        const finalBlur = isNda ? Math.max(blur, NDA_MIN_BLUR) : blur;
+        const zIdx     = Math.round(proximity * 10);
+
         const el = frameRefs.current[i];
         if (el) {
           gsap.set(el, {
             x: x - width / 2,
             y: y - height / 2,
             width, height,
-            filter: `blur(${blur}px)`,
+            filter: `blur(${finalBlur}px)`,
             opacity: op,
-            zIndex: Math.round(proximity * 10),
+            zIndex: zIdx,
+          });
+        }
+
+        // NDA overlay: same position/size as frame, no blur, one z-layer above
+        const ndaEl = ndaOverlayRefs.current[i];
+        if (ndaEl && isNda) {
+          gsap.set(ndaEl, {
+            x: x - width / 2,
+            y: y - height / 2,
+            width, height,
+            filter: "none",
+            opacity: op,
+            zIndex: zIdx + 1,
           });
         }
 
@@ -270,7 +316,10 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
       const eased = raw < 0.5
         ? 2 * raw * raw
         : 1 - Math.pow(-2 * raw + 2, 2) / 2;
-      renderRef.current?.(0, eased);
+      // Scale to 0.8 so orbitRp = 0.8 × 1.25 = 1.0 — exactly one full revolution.
+      // When reset fires at (0, 0) the frame positions are mathematically identical,
+      // so there is no visual jump.
+      renderRef.current?.(0, eased * 0.8);
       if (raw < 1) {
         rafId = requestAnimationFrame(autoTick);
       } else {
@@ -303,7 +352,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
   const handleProjectClick = useCallback(() => {
     const p = displayProjectsRef.current[lastActiveI.current]
       ?? displayProjectsRef.current[0];
-    if (!p) return;
+    if (!p || p.nda) return;
     if (p.isExternal && p.externalUrl) {
       window.open(p.externalUrl, "_blank", "noopener,noreferrer");
     } else if (p.isLive) {
@@ -311,14 +360,16 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
     }
   }, [router]);
 
-  const isClickable  = !!proj && (proj.isExternal || proj.isLive);
-  const hoverLabel   = !proj
+  const isClickable = !!proj && !proj.nda && (proj.isExternal || proj.isLive);
+  const hoverLabel  = !proj
     ? ""
-    : proj.isExternal
-      ? "View Project →"
-      : proj.isLive
-        ? "View Case Study →"
-        : "Coming Soon";
+    : proj.nda
+      ? proj.isLive ? "Please contact for password" : "Coming Soon"
+      : proj.isExternal
+        ? "View Project →"
+        : proj.isLive
+          ? "View Case Study →"
+          : "Coming Soon";
 
   return (
     <div ref={outerRef} style={{ height: "500vh" }}>
@@ -346,6 +397,21 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
             }}
           />
         ))}
+
+        {/* NDA overlays — siblings (not children) of frames so they bypass the blur filter */}
+        {displayProjects.map((p, i) => p.nda ? (
+          <div
+            key={`nda-${i}`}
+            ref={(el: HTMLDivElement | null) => { ndaOverlayRefs.current[i] = el; }}
+            style={{
+              position: "absolute", left: 0, top: 0,
+              opacity: 0,
+              willChange: "transform, width, height, opacity",
+            }}
+          >
+            <NdaFrameOverlay />
+          </div>
+        ) : null)}
 
         {/* Intro text — fades out as orbit begins */}
         <div
