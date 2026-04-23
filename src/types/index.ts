@@ -57,6 +57,25 @@ export type ProjectListItem = Pick<
   "_id" | "title" | "slug" | "year" | "duration" | "role" | "type" | "nda" | "thumbnail" | "hook"
 >;
 
+// ─── Landing page project (new schema with toggle fields) ─────────────────────
+
+export type LandingProject = {
+  _id: string;
+  title: string;
+  slug: string;
+  client?: string;
+  year?: string;
+  about?: string;
+  tags?: string[];
+  thumbnailUrl?: string;
+  type?: string;
+  nda?: boolean;
+  ndaTitle?: string;
+  isLive?: boolean;
+  isExternal?: boolean;
+  externalUrl?: string;
+};
+
 // ─── v2 types (new schema) ────────────────────────────────────────────────────
 
 export type SanityImageWithAlt = {

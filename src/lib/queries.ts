@@ -76,6 +76,27 @@ export const getAllProjectSlugs = groq`
   *[_type == "project"] { "slug": slug.current }
 `;
 
+// ─── Landing page projects ────────────────────────────────────────────────────
+
+export const getLandingProjects = groq`
+  *[_type == "project"] | order(order asc) {
+    _id,
+    title,
+    "slug": slug.current,
+    client,
+    year,
+    about,
+    tags,
+    "thumbnailUrl": thumbnail.asset->url,
+    type,
+    nda,
+    ndaTitle,
+    isLive,
+    isExternal,
+    externalUrl
+  }
+`;
+
 // ─── B-Side / lab items ───────────────────────────────────────────────────────
 
 export const getLabItems = groq`

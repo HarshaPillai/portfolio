@@ -1,70 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import type { LandingProject } from "@/types";
 
-const PROJECTS = [
-  {
-    name: "Stealth Field Ops SaaS",
-    client: "Undisclosed",
-    year: "2025",
-    about: "End-to-end design system and IA for a residential GC operations platform",
-    tags: ["#SAAS", "#AI", "#CLIENT"],
-    slug: "stealth-field-ops",
-  },
-  {
-    name: "Stealth Invoicing Platform",
-    client: "Undisclosed",
-    year: "2025",
-    about: "Contractor and client portal for construction job lifecycle management",
-    tags: ["#SAAS", "#FINTECH", "#CLIENT"],
-    slug: "stealth-invoicing",
-  },
-  {
-    name: "B2B Operations Platform",
-    client: "Undisclosed",
-    year: "2024",
-    about: "Workflow automation and AI command center for real estate operations",
-    tags: ["#SAAS", "#B2B", "#CLIENT"],
-    slug: "b2b-ops",
-  },
-  {
-    name: "Dream-Match",
-    client: "SVA Thesis",
-    year: "2025",
-    about: "Reimagining career exploration for high schoolers through values-based matching",
-    tags: ["#ACADEMIC", "#UX", "#RESEARCH"],
-    slug: "dream-match",
-  },
-  {
-    name: "Care+",
-    client: "SVA",
-    year: "2024",
-    about: "Empowering nurses to reclaim time through a community program connecting them with high school student volunteers",
-    tags: ["#ACADEMIC", "#SERVICE DESIGN", "#HEALTH"],
-    slug: "care-plus",
-  },
-  {
-    name: "Strava x Recover Athletics",
-    client: "SVA",
-    year: "2023",
-    about: "Integrating athlete rehabilitation features into Strava through an imagined partnership with Recover Athletics",
-    tags: ["#ACADEMIC", "#PRODUCT DESIGN", "#HEALTH"],
-    slug: "strava-recover",
-  },
-  {
-    name: "Lost in Translation",
-    client: "SVA MFA Thesis",
-    year: "2025",
-    about: "Rethinking expressions of care across distances — exploring intergenerational and intercultural communication within Asian immigrant families",
-    tags: ["#THESIS", "#RESEARCH", "#SERVICE DESIGN"],
-    slug: "lost-in-translation",
-  },
-];
-
-const N              = PROJECTS.length;
 const TWO_PI         = Math.PI * 2;
 const RADIUS_X_START = 320;
 const RADIUS_X_END   = 700;
@@ -81,6 +22,34 @@ const INTRO_H        = INTRO_W * ASPECT;
 const INTRO_BLUR     = 4;
 const INTRO_OPACITY  = 0.5;
 const INTRO_END      = 0.20;
+
+type DisplayProject = {
+  name: string;
+  client: string;
+  year: string;
+  about: string;
+  tags: string[];
+  slug: string;
+  thumbnailUrl?: string;
+  isLive: boolean;
+  isExternal: boolean;
+  externalUrl?: string;
+};
+
+function toDisplay(p: LandingProject): DisplayProject {
+  return {
+    name:         p.nda && p.ndaTitle ? p.ndaTitle : p.title,
+    client:       p.client  || "—",
+    year:         p.year    || "—",
+    about:        p.about   || "",
+    tags:         p.tags    || [],
+    slug:         p.slug,
+    thumbnailUrl: p.thumbnailUrl,
+    isLive:       p.isLive    !== false,
+    isExternal:   p.isExternal === true,
+    externalUrl:  p.externalUrl,
+  };
+}
 
 function MetaRow({
   label, value, mono,
@@ -150,7 +119,7 @@ function NavArrow({
   );
 }
 
-export default function HomeCanvas() {
+export default function HomeCanvas({ projects }: { projects: LandingProject[] }) {
   const outerRef      = useRef<HTMLDivElement>(null);
   const stickyRef     = useRef<HTMLDivElement>(null);
   const frameRefs     = useRef<(HTMLDivElement | null)[]>([]);
@@ -158,19 +127,22 @@ export default function HomeCanvas() {
   const introTextRef  = useRef<HTMLDivElement>(null);
   const scrollProgRef = useRef(0);
   const lastActiveI   = useRef(-1);
-  // render fn stored in a ref so the intro-animation effect can call it
   const renderRef     = useRef<((p: number, extraOffset?: number) => void) | null>(null);
 
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [metaHovered, setMetaHovered] = useState(false);
-  const [cursorPos, setCursorPos]     = useState({ x: -999, y: -999 });
+  const displayProjects: DisplayProject[] = useMemo(
+    () => projects.map(toDisplay),
+    [projects],
+  );
+
+  // Keep a ref so the GSAP closure always reads the latest data without re-subscribing
+  const displayProjectsRef = useRef(displayProjects);
+  displayProjectsRef.current = displayProjects;
+
+  const [activeIndex, setActiveIndex]   = useState(0);
+  const [metaHovered, setMetaHovered]   = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
 
   const router = useRouter();
-
-  const handleStickyMouseMove = useCallback((e: React.MouseEvent) => {
-    setCursorPos({ x: e.clientX, y: e.clientY });
-  }, []);
 
   // ── Main orbit render + ScrollTrigger ──────────────────────────────────────
   useEffect(() => {
@@ -183,6 +155,9 @@ export default function HomeCanvas() {
     const stickyEl = sticky;
 
     function render(scrollProg: number, extraOffset = 0) {
+      const n = frameRefs.current.filter(Boolean).length;
+      if (n === 0) return;
+
       const w  = stickyEl.offsetWidth;
       const h  = stickyEl.offsetHeight;
       const cy = h * 0.50;
@@ -196,7 +171,6 @@ export default function HomeCanvas() {
       const rx = RADIUS_X_START + (RADIUS_X_END - RADIUS_X_START) * ease;
       const ry = RADIUS_Y_START + (RADIUS_Y_END - RADIUS_Y_START) * ease;
 
-      // Intro text fades out as user starts scrolling
       const textEl = introTextRef.current;
       if (textEl && scrollProg > 0) {
         textEl.style.opacity = String(Math.max(0, 1 - scrollProg / 0.10));
@@ -205,8 +179,8 @@ export default function HomeCanvas() {
       let bestP = -1, bestI = 0;
       let bestX = 0, bestY = 0, bestW = 0, bestH = 0;
 
-      for (let i = 0; i < N; i++) {
-        const ang       = (i / N) * TWO_PI + orbitRp * TWO_PI;
+      for (let i = 0; i < n; i++) {
+        const ang       = (i / n) * TWO_PI + orbitRp * TWO_PI;
         const x         = cx + Math.cos(ang) * rx;
         const y         = cy + Math.sin(ang) * ry;
         const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
@@ -246,7 +220,6 @@ export default function HomeCanvas() {
 
       const metaEl = metaRef.current;
       if (metaEl) {
-        // Metadata only shows post-intro when scroll is driving (no extraOffset)
         const mo = !isIntro && extraOffset === 0 && bestP > META_THRESH
           ? (bestP - META_THRESH) / (1 - META_THRESH)
           : 0;
@@ -283,19 +256,17 @@ export default function HomeCanvas() {
     };
   }, []);
 
-  // ── Intro: page fade-in then one slow orbit rotation ──────────────────────
+  // ── Intro: fade-in then one slow orbit rotation ────────────────────────────
   useEffect(() => {
-    // Fade in the whole viewport shortly after mount
     const fadeTimer = setTimeout(() => setIntroVisible(true), 80);
 
-    const AUTO_DUR = 2600; // one full orbit rotation duration (ms)
+    const AUTO_DUR = 2600;
     let autoStart: number | null = null;
     let rafId: number;
 
     const autoTick = (now: number) => {
       if (!autoStart) autoStart = now;
       const raw = Math.min((now - autoStart) / AUTO_DUR, 1);
-      // Ease in-out for a smooth, organic feel
       const eased = raw < 0.5
         ? 2 * raw * raw
         : 1 - Math.pow(-2 * raw + 2, 2) / 2;
@@ -303,12 +274,10 @@ export default function HomeCanvas() {
       if (raw < 1) {
         rafId = requestAnimationFrame(autoTick);
       } else {
-        // Full orbit done — reset offset to 0 (same visual position, period = 1)
         renderRef.current?.(0, 0);
       }
     };
 
-    // Start auto-rotation after fade begins
     const autoTimer = setTimeout(() => {
       rafId = requestAnimationFrame(autoTick);
     }, 320);
@@ -322,32 +291,56 @@ export default function HomeCanvas() {
 
   // ── Project step scrolling for ↑/↓ arrows ────────────────────────────────
   const scrollByProject = useCallback((dir: 1 | -1) => {
+    const n = displayProjectsRef.current.length;
+    if (n === 0) return;
     const totalPx = document.documentElement.scrollHeight - window.innerHeight;
-    const stepPx  = totalPx / (N * 1.25);
+    const stepPx  = totalPx / (n * 1.25);
     window.scrollBy({ top: dir * stepPx, behavior: "smooth" });
   }, []);
 
-  const proj = PROJECTS[activeIndex];
+  const proj = displayProjects[Math.min(activeIndex, displayProjects.length - 1)];
+
+  const handleProjectClick = useCallback(() => {
+    const p = displayProjectsRef.current[lastActiveI.current]
+      ?? displayProjectsRef.current[0];
+    if (!p) return;
+    if (p.isExternal && p.externalUrl) {
+      window.open(p.externalUrl, "_blank", "noopener,noreferrer");
+    } else if (p.isLive) {
+      router.push(`/projects/${p.slug}`);
+    }
+  }, [router]);
+
+  const isClickable  = !!proj && (proj.isExternal || proj.isLive);
+  const hoverLabel   = !proj
+    ? ""
+    : proj.isExternal
+      ? "View Project →"
+      : proj.isLive
+        ? "View Case Study →"
+        : "Coming Soon";
 
   return (
     <div ref={outerRef} style={{ height: "500vh" }}>
       <div
         ref={stickyRef}
-        onMouseMove={handleStickyMouseMove}
         style={{
           position: "sticky", top: 0, height: "100vh", overflow: "hidden",
           opacity: introVisible ? 1 : 0,
           transition: "opacity 0.9s ease",
         }}
       >
-        {/* Carousel frames */}
-        {PROJECTS.map((_, i) => (
+        {/* Carousel frames — thumbnail background if available */}
+        {displayProjects.map((p, i) => (
           <div
             key={i}
             ref={(el: HTMLDivElement | null) => { frameRefs.current[i] = el; }}
             style={{
               position: "absolute", left: 0, top: 0,
               backgroundColor: "#C4C4C4",
+              backgroundImage: p.thumbnailUrl ? `url(${p.thumbnailUrl})` : undefined,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
               opacity: 0,
               willChange: "transform, width, height, opacity, filter",
             }}
@@ -378,62 +371,65 @@ export default function HomeCanvas() {
         </div>
 
         {/* Metadata panel */}
-        <div
-          ref={metaRef}
-          onClick={() => router.push(`/projects/${proj.slug}`)}
-          onMouseEnter={() => setMetaHovered(true)}
-          onMouseLeave={() => setMetaHovered(false)}
-          style={{
-            position: "absolute", left: 0, top: 0,
-            width: META_W, minWidth: META_W,
-            opacity: 0, pointerEvents: "none",
-            zIndex: 20, cursor: "none",
-          }}
-        >
-          <div key={activeIndex} style={{ animation: "metaFadeIn 0.3s ease" }}>
-            <MetaRow label="Project" value={proj.name} />
-            <MetaRow label="Client"  value={proj.client} />
-            <MetaRow label="Year"    value={proj.year} />
-            <MetaRow label="About"   value={proj.about} />
-            <MetaRow label="Tags"    value={proj.tags.join("  ")} mono />
-          </div>
-
-          {/* Up / down project navigation */}
+        {proj && (
           <div
-            onClick={(e) => e.stopPropagation()}
+            ref={metaRef}
+            onClick={handleProjectClick}
+            onMouseEnter={() => setMetaHovered(true)}
+            onMouseLeave={() => setMetaHovered(false)}
             style={{
-              display: "flex", gap: 6, marginTop: 14,
-              justifyContent: "flex-end",
+              position: "absolute", left: 0, top: 0,
+              width: META_W, minWidth: META_W,
+              opacity: 0, pointerEvents: "none",
+              zIndex: 20,
+              cursor: isClickable ? "pointer" : "default",
             }}
           >
-            <NavArrow onClick={(e) => { e.stopPropagation(); scrollByProject(-1); }}>
-              ↑
-            </NavArrow>
-            <NavArrow onClick={(e) => { e.stopPropagation(); scrollByProject(1); }}>
-              ↓
-            </NavArrow>
-          </div>
-        </div>
+            {/* Metadata rows — key resets animation on project change */}
+            <div key={activeIndex} style={{ animation: "metaFadeIn 0.3s ease" }}>
+              <MetaRow label="Project" value={proj.name} />
+              <MetaRow label="Client"  value={proj.client} />
+              <MetaRow label="Year"    value={proj.year} />
+              <MetaRow label="About"   value={proj.about} />
+              <MetaRow label="Tags"    value={proj.tags.join("  ")} mono />
+            </div>
 
-        {/* Custom "View Case Study" cursor pill */}
-        <div
-          style={{
-            position: "fixed",
-            left: cursorPos.x, top: cursorPos.y,
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-            zIndex: 50,
-            opacity: metaHovered ? 1 : 0,
-            transition: "opacity 0.15s",
-            backgroundColor: "#1a1a1a", color: "#ffffff",
-            fontFamily: "var(--font-dm-mono), monospace",
-            fontSize: 11, letterSpacing: "-0.02em",
-            padding: "9px 20px", borderRadius: 100,
-            whiteSpace: "nowrap",
-          }}
-        >
-          View Case Study ↗
-        </div>
+            {/* Up / down project navigation */}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ display: "flex", gap: 6, marginTop: 14, justifyContent: "flex-end" }}
+            >
+              <NavArrow onClick={(e) => { e.stopPropagation(); scrollByProject(-1); }}>↑</NavArrow>
+              <NavArrow onClick={(e) => { e.stopPropagation(); scrollByProject(1); }}>↓</NavArrow>
+            </div>
+
+            {/* Centered hover label overlay */}
+            <div
+              style={{
+                position: "absolute", inset: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                opacity: metaHovered ? 1 : 0,
+                transition: "opacity 0.15s",
+                pointerEvents: "none",
+                backgroundColor: "rgba(255,255,255,0.55)",
+                backdropFilter: "blur(2px)",
+                WebkitBackdropFilter: "blur(2px)",
+              }}
+            >
+              <span style={{
+                fontFamily: "var(--font-dm-mono), monospace",
+                fontSize: 11, letterSpacing: "-0.02em",
+                color: isClickable ? "#1a1a1a" : "rgba(58,58,58,0.38)",
+                backgroundColor: "#FFFFFF",
+                padding: "9px 20px", borderRadius: 100,
+                whiteSpace: "nowrap",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}>
+                {hoverLabel}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Scroll indicator */}
         <div style={{
