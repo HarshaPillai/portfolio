@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useCallback } from "react";
 import DesignPhilosophy from "@/components/DesignPhilosophy";
+import { EnvelopeIcon } from "@/components/SocialIcons";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function O(props: any) {
@@ -20,7 +21,18 @@ const labelStyle: React.CSSProperties = {
   color: "rgba(58,58,58,0.45)", textTransform: "uppercase", lineHeight: 1.4,
 };
 
+const EMAIL = "harsha.pillai98@gmail.com";
+
 export default function AboutPage() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(EMAIL).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, []);
+
   return (
     <div style={{ display: "flex", gap: 48, alignItems: "flex-start" }}>
 
@@ -59,6 +71,57 @@ export default function AboutPage() {
             class, rooting for the NY Knicks, or keeping her NYT Connections
             streak alive.
           </p>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, backgroundColor: "rgba(0,0,0,0.08)", margin: "28px 0 20px" }} />
+
+        {/* Most Recently */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={labelStyle}>Most Recently</div>
+          <div style={bodyStyle}>Product Designer @ ProductStak</div>
+        </div>
+
+        {/* Contact row */}
+        <div
+          style={{
+            fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+            fontSize: 13,
+            color: "#3A3A3A",
+            lineHeight: 1.6,
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 6,
+          }}
+        >
+          <span>Always open to a chat. Contact me at</span>
+          <span
+            onClick={handleCopy}
+            style={{ color: "#F35900", cursor: "pointer" }}
+          >
+            {EMAIL}
+          </span>
+          <button
+            onClick={handleCopy}
+            aria-label="Copy email"
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              color: "#F35900",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <EnvelopeIcon size={14} />
+          </button>
+          {copied && (
+            <span style={{ color: "#F35900", fontFamily: "var(--font-dm-mono), monospace", fontSize: 11 }}>
+              Copied!
+            </span>
+          )}
         </div>
       </div>
 
