@@ -4,7 +4,7 @@ import type { Article } from "@/components/WritingClient";
 async function fetchArticles(): Promise<Article[]> {
   try {
     const res = await fetch("https://medium.com/feed/@harshapillai", {
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 },
     });
     if (!res.ok) return [];
 
@@ -22,9 +22,16 @@ async function fetchArticles(): Promise<Article[]> {
 
       const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? "";
 
-      const rawDesc = item.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/)?.[1]
-        ?? item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/)?.[1]
+      const ceHtml = item.match(/<content:encoded>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/content:encoded>/)?.[1]
+        ?? item.match(/<description>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/)?.[1]
+        ?? item.match(/<description>([\s\S]*?)<\/description>/)?.[1]
         ?? "";
+
+      // Pull text from <p> tags for a clean sentence snippet
+      const pTags = [...ceHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
+      const rawDesc = pTags.length > 0
+        ? pTags.map((m) => m[1]).join(" ")
+        : ceHtml;
 
       const stripped = rawDesc
         .replace(/<[^>]*>/g, " ")
@@ -33,6 +40,7 @@ async function fetchArticles(): Promise<Article[]> {
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')
+        .replace(/&[a-z]+;/g, " ")
         .replace(/&#\d+;/g, "")
         .replace(/\s+/g, " ")
         .trim();
