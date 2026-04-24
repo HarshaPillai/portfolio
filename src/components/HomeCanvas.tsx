@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { LandingProject } from "@/types";
+import NDAModal from "@/components/NDAModal";
 
 const TWO_PI         = Math.PI * 2;
 const RADIUS_X_START = 320;
@@ -171,9 +172,13 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
   const displayProjectsRef = useRef(displayProjects);
   displayProjectsRef.current = displayProjects;
 
-  const [activeIndex, setActiveIndex]   = useState(0);
-  const [metaHovered, setMetaHovered]   = useState(false);
-  const [introVisible, setIntroVisible] = useState(false);
+  // NDA progressive reveal — starts at 0 (no blur/overlay), animates to 1 on first scroll
+  const ndaRevealFactorRef = useRef(0);
+
+  const [activeIndex, setActiveIndex]     = useState(0);
+  const [metaHovered, setMetaHovered]     = useState(false);
+  const [introVisible, setIntroVisible]   = useState(false);
+  const [ndaModalProject, setNdaModalProject] = useState<{ name: string; slug: string } | null>(null);
 
   const router = useRouter();
 
@@ -213,7 +218,9 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
       let bestX = 0, bestY = 0, bestW = 0, bestH = 0;
 
       for (let i = 0; i < n; i++) {
-        const ang       = (i / n) * TWO_PI + orbitRp * TWO_PI;
+        // Reversed rotation + π phase: item 0 starts at active angle (π),
+        // items then appear in ascending index order as the user scrolls.
+        const ang       = (i / n) * TWO_PI - orbitRp * TWO_PI + Math.PI;
         const x         = cx + Math.cos(ang) * rx;
         const y         = cy + Math.sin(ang) * ry;
         const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
@@ -228,9 +235,11 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
         const blur   = isIntro ? INTRO_BLUR + (orbitBlur - INTRO_BLUR) * ease : orbitBlur;
         const op     = isIntro ? INTRO_OPACITY + (orbitOp - INTRO_OPACITY) * ease : orbitOp;
 
-        const isNda    = displayProjectsRef.current[i]?.nda ?? false;
-        const finalBlur = isNda ? Math.max(blur, NDA_MIN_BLUR) : blur;
-        const zIdx     = Math.round(proximity * 10);
+        const isNda   = displayProjectsRef.current[i]?.nda ?? false;
+        const revealF = ndaRevealFactorRef.current;
+        // Blur and overlay both scale with reveal factor — 0 on load, full after first scroll
+        const finalBlur = isNda ? Math.max(blur, NDA_MIN_BLUR * revealF) : blur;
+        const zIdx      = Math.round(proximity * 10);
 
         const el = frameRefs.current[i];
         if (el) {
@@ -252,7 +261,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
             y: y - height / 2,
             width, height,
             filter: "none",
-            opacity: op,
+            opacity: op * revealF,
             zIndex: zIdx + 1,
           });
         }
@@ -342,6 +351,23 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
     };
   }, []);
 
+  // ── NDA reveal: fade in blur + lock overlay on first scroll ──────────────
+  useEffect(() => {
+    const onFirstScroll = () => {
+      const start = performance.now();
+      const dur   = 700;
+      const tick  = (now: number) => {
+        const t = Math.min((now - start) / dur, 1);
+        ndaRevealFactorRef.current = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        renderRef.current?.(scrollProgRef.current, 0);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    window.addEventListener("scroll", onFirstScroll, { passive: true, once: true });
+    return () => window.removeEventListener("scroll", onFirstScroll);
+  }, []);
+
   // ── Project step scrolling for ↑/↓ arrows ────────────────────────────────
   const scrollByProject = useCallback((dir: 1 | -1) => {
     const n = displayProjectsRef.current.length;
@@ -356,19 +382,23 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
   const handleProjectClick = useCallback(() => {
     const p = displayProjectsRef.current[lastActiveI.current]
       ?? displayProjectsRef.current[0];
-    if (!p || p.nda) return;
-    if (p.isExternal && p.externalUrl) {
+    if (!p) return;
+    if (p.nda && p.isLive) {
+      setNdaModalProject({ name: p.name, slug: p.slug });
+    } else if (p.isExternal && p.externalUrl) {
       window.open(p.externalUrl, "_blank", "noopener,noreferrer");
     } else if (p.isLive) {
       router.push(`/projects/${p.slug}`);
     }
   }, [router]);
 
-  const isClickable = !!proj && !proj.nda && (proj.isExternal || proj.isLive);
-  const hoverLabel  = !proj
+  const isClickable = !!proj && (
+    proj.nda ? proj.isLive : (proj.isExternal || proj.isLive)
+  );
+  const hoverLabel = !proj
     ? ""
     : proj.nda
-      ? proj.isLive ? "Please contact for password" : "Coming Soon"
+      ? proj.isLive ? "Enter Password →" : "Coming Soon"
       : proj.isExternal
         ? "View Project →"
         : proj.isLive
@@ -376,7 +406,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
           : "Coming Soon";
 
   return (
-    <div ref={outerRef} style={{ height: "500vh" }}>
+    <div ref={outerRef} style={{ height: "500vh", contain: "layout" }}>
       <div
         ref={stickyRef}
         style={{
@@ -453,6 +483,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
               opacity: 0, pointerEvents: "none",
               zIndex: 20,
               cursor: isClickable ? "pointer" : "default",
+              willChange: "transform, opacity",
             }}
           >
             {/* Metadata rows — key resets animation on project change */}
@@ -514,6 +545,15 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
           </span>
         </div>
       </div>
+
+      {/* NDA password modal */}
+      {ndaModalProject && (
+        <NDAModal
+          projectName={ndaModalProject.name}
+          slug={ndaModalProject.slug}
+          onClose={() => setNdaModalProject(null)}
+        />
+      )}
     </div>
   );
 }
