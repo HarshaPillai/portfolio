@@ -112,6 +112,7 @@ export default function DesignPhilosophy() {
 
   // Track currently hovered ring index to avoid redundant state updates on mousemove
   const ringHoverIdxRef = useRef(-1);
+  const centerHoveredRef = useRef(false);
 
   const draw = useCallback((timestamp: number) => {
     const canvas = canvasRef.current;
@@ -236,12 +237,14 @@ export default function DesignPhilosophy() {
     ctx.arc(cx, cy, 44, 0, Math.PI * 2);
     ctx.fillStyle = "#000000";
     ctx.fill();
-    ctx.fillStyle    = "#ffffff";
-    ctx.font         = "8px 'DM Mono', monospace";
-    ctx.textAlign    = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("DESIGN",     cx, cy - 4);
-    ctx.fillText("PHILOSOPHY", cx, cy + 7);
+    if (centerHoveredRef.current) {
+      ctx.fillStyle    = "#ffffff";
+      ctx.font         = "8px 'DM Mono', monospace";
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText("MY DESIGN",  cx, cy - 4);
+      ctx.fillText("PHILOSOPHY", cx, cy + 7);
+    }
 
     rafRef.current = requestAnimationFrame(draw);
   }, []);
@@ -257,7 +260,8 @@ export default function DesignPhilosophy() {
     // Center circle hover
     const ccx = logicalSizeRef.current.w / 2;
     const ccy = logicalSizeRef.current.h / 2;
-    setCenterHovered(Math.hypot(mx - ccx, my - ccy) <= 44);
+    centerHoveredRef.current = Math.hypot(mx - ccx, my - ccy) <= 44;
+    setCenterHovered(centerHoveredRef.current);
 
     // Node hover check
     let foundNode = false;
@@ -316,6 +320,7 @@ export default function DesignPhilosophy() {
 
   const handleMouseLeave = useCallback(() => {
     mouseRef.current = { x: -9999, y: -9999 };
+    centerHoveredRef.current = false;
     setNodeHover(null);
     setRingHover(null);
     setRingLabelData(null);
@@ -433,7 +438,7 @@ export default function DesignPhilosophy() {
             borderRadius: "50%",
             objectFit: "cover",
             objectPosition: "center top",
-            opacity: centerHovered ? 1 : 0,
+            opacity: centerHovered ? 0 : 1,
             transition: "opacity 0.3s ease",
             pointerEvents: "none",
             zIndex: 5,

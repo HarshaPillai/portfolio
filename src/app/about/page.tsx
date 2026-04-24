@@ -34,7 +34,7 @@ export default function AboutPage() {
           letterSpacing: "-0.03em", color: "#3A3A3A",
           lineHeight: 1.5, margin: "0 0 28px 0",
         }}>
-          Before she was a product designer, Harsha was an{" "}
+          Before product design, Harsha was an{" "}
           <O>architectural designer</O>, an <O>engineer</O>, a{" "}
           <O>competitive dancer</O>, and a kid obsessed with puzzles.
         </p>
@@ -42,32 +42,22 @@ export default function AboutPage() {
         {/* Bio paragraphs */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <p style={bodyStyle}>
-            Born in Switzerland, raised in Germany, and of Indian heritage, she
-            naturally moves between cultures, languages, and ways of seeing the
-            world. This ever-changing perspective shaped her approach, deeply
-            considering the systems we live in, and most importantly, designing
-            with care for those at the heart of it all.
+            Born in Switzerland, raised in Germany, of Indian heritage, she
+            moves naturally between cultures, languages, and ways of seeing.
+            That ever-shifting perspective shaped her approach: design deeply
+            rooted in <O>systems thinking</O>, and in <O>care</O> for the
+            people at the center of it all.
           </p>
           <p style={bodyStyle}>
-            With 3+ years in product, she still loves everything about it — the{" "}
-            <O>strategy</O>, the <O>craft</O>, the moment something gets into
-            someone&apos;s hands and actually works. She wants to be close to the
-            thing being built and close to the people it is being built for.
-          </p>
-          <p style={bodyStyle}>
-            What she cares about most is what gets built in the first place, and
-            why. In a world where anything can be made, it is not a question of
-            can we but rather <O>should we</O>. Her professor and mentor Allan
-            Chochinov always reminded her that designers are in the{" "}
-            <O>consequence business</O>, and she tries not to forget that.
+            With 3+ years in product, she has experience across consumer, B2B,
+            and integrated platforms. What she cares about most is designing
+            with consequences in mind. In a world where anything can be built,
+            the question isn&apos;t can we, but rather <O>should we</O>.
           </p>
           <p style={bodyStyle}>
             Outside of design, you&apos;ll find her throwing punches in kickboxing
             class, rooting for the NY Knicks, or keeping her NYT Connections
             streak alive.
-          </p>
-          <p style={bodyStyle}>
-            Ultimately, trying to live as many lives as possible in this one.
           </p>
         </div>
       </div>
