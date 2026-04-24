@@ -74,6 +74,8 @@ function LabCard({ item, onClick, priority }: { item: LabItem; onClick: (item: L
         breakInside: "avoid",
         marginBottom: 12,
         display: "block",
+        willChange: "transform",
+        transform: "translateZ(0)",
       }}
     >
       {item.thumbnailUrl ? (
@@ -84,6 +86,7 @@ function LabCard({ item, onClick, priority }: { item: LabItem; onClick: (item: L
           height={600}
           quality={80}
           priority={priority}
+          loading={priority ? undefined : "lazy"}
           sizes="(max-width: 768px) 100vw, 33vw"
           style={{ display: "block", width: "100%", height: "auto" }}
         />
@@ -102,6 +105,7 @@ function LabCard({ item, onClick, priority }: { item: LabItem; onClick: (item: L
           padding: "14px 16px",
           transform: hovered ? "translateY(0)" : "translateY(100%)",
           transition: "transform 0.25s ease",
+          willChange: "transform",
         }}
       >
         <div style={{ marginBottom: 6 }}>
@@ -239,7 +243,7 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0A", position: "relative", overflowY: "auto" }}>
+    <div style={{ minHeight: "100vh", background: "#0A0A0A", position: "relative", overflowY: "auto", contain: "layout" }}>
       {/* CD loader */}
       {!loaded && (
         <BsideLoader direction="enter" onComplete={() => setLoaded(true)} />
@@ -287,7 +291,7 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
           {labs.length === 0
             ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
             : labs.map((item, i) => (
-                <LabCard key={item._id} item={item} onClick={handleCardClick} priority={i < 3} />
+                <LabCard key={item._id} item={item} onClick={handleCardClick} priority={i < 2} />
               ))}
         </div>
       </div>

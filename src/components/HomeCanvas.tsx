@@ -376,7 +376,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
           : "Coming Soon";
 
   return (
-    <div ref={outerRef} style={{ height: "500vh" }}>
+    <div ref={outerRef} style={{ height: "500vh", contain: "layout" }}>
       <div
         ref={stickyRef}
         style={{
@@ -453,6 +453,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
               opacity: 0, pointerEvents: "none",
               zIndex: 20,
               cursor: isClickable ? "pointer" : "default",
+              willChange: "transform, opacity",
             }}
           >
             {/* Metadata rows — key resets animation on project change */}
