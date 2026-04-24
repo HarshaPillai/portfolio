@@ -95,6 +95,34 @@ export const projectType = {
       initialValue: false,
       description: "If false, hovering shows 'Coming Soon' instead of 'View Case Study'.",
     },
+    {
+      name: "showResearch",
+      title: "Show Research Chapter",
+      type: "boolean",
+      initialValue: false,
+      description: "Turn on for academic or research-heavy projects.",
+    },
+    {
+      name: "showProcess",
+      title: "Show Process Chapter",
+      type: "boolean",
+      initialValue: true,
+      description: "Show context, challenge, and key decisions.",
+    },
+    {
+      name: "showNextSteps",
+      title: "Show Next Steps",
+      type: "boolean",
+      initialValue: false,
+      description: "What you would do with more time.",
+    },
+    {
+      name: "showLearnings",
+      title: "Show Learnings",
+      type: "boolean",
+      initialValue: false,
+      description: "Personal reflection. Good for academic projects.",
+    },
 
     // ── HEADER ────────────────────────────────────────────────
     {
@@ -118,6 +146,24 @@ export const projectType = {
       rows: 2,
       description: "Subtext below the headline. 1–2 sentences.",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
+    },
+    {
+      name: "solutionLabel",
+      title: "Solution Chapter Label",
+      type: "string",
+      description: 'Override "Solution" e.g. "The Platform", "What We Built"',
+    },
+    {
+      name: "processLabel",
+      title: "Process Chapter Label",
+      type: "string",
+      description: 'Override "Process" e.g. "How We Got There", "Design Decisions"',
+    },
+    {
+      name: "researchLabel",
+      title: "Research Chapter Label",
+      type: "string",
+      description: 'Override "Research" e.g. "Discovery", "User Research"',
     },
 
     // ── METADATA ──────────────────────────────────────────────
@@ -221,6 +267,54 @@ export const projectType = {
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
 
+    // ── RESEARCH ──────────────────────────────────────────────────────────
+    {
+      name: "researchSummary",
+      title: "Research Summary",
+      type: "text",
+      rows: 4,
+      description: "Overview of research approach and key findings.",
+      hidden: ({ document }: { document: { showResearch?: boolean } }) =>
+        !document?.showResearch,
+    },
+    {
+      name: "researchInsights",
+      title: "Research Insights",
+      type: "array",
+      description: "Key insight callouts shown as cards.",
+      hidden: ({ document }: { document: { showResearch?: boolean } }) =>
+        !document?.showResearch,
+      of: [
+        {
+          type: "object",
+          fields: [
+            { name: "label", title: "Label", type: "string",
+              description: 'e.g. "KEY INSIGHT"' },
+            { name: "insight", title: "Insight", type: "text", rows: 2 },
+          ],
+          preview: { select: { title: "insight" } },
+        },
+      ],
+    },
+    {
+      name: "researchImages",
+      title: "Research Images",
+      type: "array",
+      hidden: ({ document }: { document: { showResearch?: boolean } }) =>
+        !document?.showResearch,
+      of: [
+        {
+          type: "object",
+          fields: [
+            { name: "image", title: "Image", type: "image",
+              options: { hotspot: true } },
+            { name: "caption", title: "Caption", type: "string" },
+          ],
+          preview: { select: { title: "caption", media: "image" } },
+        },
+      ],
+    },
+
     // ── FEATURES ──────────────────────────────────────────────
     {
       name: "features",
@@ -286,6 +380,44 @@ export const projectType = {
               media: "image",
             },
           },
+        },
+      ],
+    },
+
+    // ── NEXT STEPS & LEARNINGS ────────────────────────────────────────────
+    {
+      name: "nextSteps",
+      title: "Next Steps",
+      type: "text",
+      rows: 4,
+      description: "What you would do with more time or resources.",
+      hidden: ({ document }: { document: { showNextSteps?: boolean } }) =>
+        !document?.showNextSteps,
+    },
+    {
+      name: "learnings",
+      title: "What I Learned",
+      type: "text",
+      rows: 4,
+      description: "Personal reflection on the project.",
+      hidden: ({ document }: { document: { showLearnings?: boolean } }) =>
+        !document?.showLearnings,
+    },
+    {
+      name: "learningImages",
+      title: "Reflection Images",
+      type: "array",
+      hidden: ({ document }: { document: { showLearnings?: boolean } }) =>
+        !document?.showLearnings,
+      of: [
+        {
+          type: "object",
+          fields: [
+            { name: "image", title: "Image", type: "image",
+              options: { hotspot: true } },
+            { name: "caption", title: "Caption", type: "string" },
+          ],
+          preview: { select: { title: "caption", media: "image" } },
         },
       ],
     },
