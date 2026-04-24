@@ -218,7 +218,9 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
       let bestX = 0, bestY = 0, bestW = 0, bestH = 0;
 
       for (let i = 0; i < n; i++) {
-        const ang       = (i / n) * TWO_PI + orbitRp * TWO_PI;
+        // Reversed rotation + π phase: item 0 starts at active angle (π),
+        // items then appear in ascending index order as the user scrolls.
+        const ang       = (i / n) * TWO_PI - orbitRp * TWO_PI + Math.PI;
         const x         = cx + Math.cos(ang) * rx;
         const y         = cy + Math.sin(ang) * ry;
         const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
