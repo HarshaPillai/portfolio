@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import BsideLoader from "@/components/BsideLoader";
 
@@ -55,7 +56,7 @@ function StatusPip({ status }: { status?: string }) {
 
 // ─── Lab card ─────────────────────────────────────────────────────────────────
 
-function LabCard({ item, onClick }: { item: LabItem; onClick: (item: LabItem) => void }) {
+function LabCard({ item, onClick, priority }: { item: LabItem; onClick: (item: LabItem) => void; priority?: boolean }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -76,11 +77,15 @@ function LabCard({ item, onClick }: { item: LabItem; onClick: (item: LabItem) =>
       }}
     >
       {item.thumbnailUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={item.thumbnailUrl}
           alt={item.title}
-          style={{ display: "block", width: "100%", objectFit: "cover" }}
+          width={800}
+          height={600}
+          quality={80}
+          priority={priority}
+          sizes="(max-width: 768px) 100vw, 33vw"
+          style={{ display: "block", width: "100%", height: "auto" }}
         />
       ) : (
         <div style={{ width: "100%", minHeight: 180, background: "rgba(255,255,255,0.04)" }} />
@@ -189,7 +194,7 @@ function Lightbox({ item, onClose }: { item: LabItem; onClose: () => void }) {
         {item.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.thumbnailUrl}
+            src={`${item.thumbnailUrl}?w=1600&auto=format&q=80`}
             alt={item.title}
             style={{ maxWidth: "80vw", maxHeight: "80vh", objectFit: "contain", borderRadius: 6, display: "block" }}
           />
@@ -281,8 +286,8 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
         <div style={{ columns: "3 280px", gap: 12 }}>
           {labs.length === 0
             ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
-            : labs.map((item) => (
-                <LabCard key={item._id} item={item} onClick={handleCardClick} />
+            : labs.map((item, i) => (
+                <LabCard key={item._id} item={item} onClick={handleCardClick} priority={i < 3} />
               ))}
         </div>
       </div>

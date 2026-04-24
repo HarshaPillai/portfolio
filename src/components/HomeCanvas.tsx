@@ -38,6 +38,10 @@ type DisplayProject = {
   externalUrl?: string;
 };
 
+function sanityOptimized(url: string) {
+  return url + (url.includes("?") ? "&" : "?") + "w=800&auto=format&q=80";
+}
+
 function toDisplay(p: LandingProject): DisplayProject {
   return {
     name:         p.nda && p.ndaTitle ? p.ndaTitle : p.title,
@@ -46,7 +50,7 @@ function toDisplay(p: LandingProject): DisplayProject {
     about:        p.about   || "",
     tags:         p.tags    || [],
     slug:         p.slug,
-    thumbnailUrl: p.thumbnailUrl,
+    thumbnailUrl: p.thumbnailUrl ? sanityOptimized(p.thumbnailUrl) : undefined,
     nda:          !!p.nda,
     isLive:       p.isLive    !== false,
     isExternal:   p.isExternal === true,
