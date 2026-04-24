@@ -164,11 +164,12 @@ function MobileProjectCard({
   const router = useRouter();
 
   const handleClick = () => {
-    if (p.nda && p.isLive) {
+    if (!p.isLive) return;
+    if (p.nda) {
       onNdaClick(p.name, p.slug);
     } else if (p.isExternal && p.externalUrl) {
       window.open(p.externalUrl, "_blank", "noopener,noreferrer");
-    } else if (p.isLive) {
+    } else {
       router.push(`/projects/${p.slug}`);
     }
   };
@@ -178,17 +179,14 @@ function MobileProjectCard({
       onClick={handleClick}
       style={{
         width: "100%",
-        borderRadius: 4,
-        overflow: "hidden",
-        border: "1px solid rgba(0,0,0,0.08)",
-        cursor: p.isLive || (p.isExternal && p.externalUrl) ? "pointer" : "default",
-        backgroundColor: "#f0f0f0",
-        position: "relative",
+        padding: "0 24px",
+        opacity: p.isLive ? 1 : 0.6,
+        cursor: p.isLive ? "pointer" : "default",
       }}
     >
       {/* Thumbnail */}
-      {p.thumbnailUrl ? (
-        <div style={{ position: "relative", width: "100%", aspectRatio: "3/2" }}>
+      <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", borderRadius: 8, overflow: "hidden" }}>
+        {p.thumbnailUrl ? (
           <Image
             src={p.thumbnailUrl}
             alt={p.name}
@@ -196,60 +194,41 @@ function MobileProjectCard({
             style={{ objectFit: "cover", filter: p.nda ? "blur(8px)" : "none" }}
             sizes="(max-width: 768px) 100vw"
           />
-          {p.nda && (
-            <div style={{
-              position: "absolute", inset: 0,
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              backgroundColor: "rgba(0,0,0,0.38)", gap: 6,
-            }}>
-              <svg width="14" height="18" viewBox="0 0 16 20" fill="none">
-                <rect x="1" y="9" width="14" height="10" rx="2" fill="rgba(255,255,255,0.88)" />
-                <path d="M4 9V6a4 4 0 0 1 8 0v3" stroke="rgba(255,255,255,0.88)" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div style={{ width: "100%", aspectRatio: "3/2", backgroundColor: "#C4C4C4" }} />
-      )}
-
-      {/* Card info */}
-      <div style={{ padding: "14px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <span style={{
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 15, fontWeight: 500,
-            letterSpacing: "-0.03em", color: "#1a1a1a",
-          }}>
-            {p.name}
-          </span>
-          {p.nda && (
-            <span style={{
-              fontFamily: "var(--font-dm-mono), monospace",
-              fontSize: 9, letterSpacing: "0.08em",
-              border: "1px solid #F35900", color: "#F35900",
-              padding: "1px 6px", borderRadius: 100,
-              textTransform: "uppercase", flexShrink: 0,
-            }}>
-              NDA
-            </span>
-          )}
-        </div>
-        <div style={{
-          fontFamily: "var(--font-dm-mono), monospace",
-          fontSize: 11, color: "#B5B5B5", letterSpacing: "-0.04em",
-        }}>
-          {p.client}
-        </div>
-        {!p.isLive && (
-          <div style={{
-            fontFamily: "var(--font-dm-mono), monospace",
-            fontSize: 10, color: "#B5B5B5", marginTop: 6, letterSpacing: "0.04em",
-          }}>
-            Coming Soon
-          </div>
+        ) : (
+          <div style={{ width: "100%", height: "100%", backgroundColor: "#C4C4C4" }} />
         )}
+        {p.nda && <NdaFrameOverlay />}
+      </div>
+
+      {/* Title + NDA badge */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+        <span style={{
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+          fontSize: 15, fontWeight: 500,
+          color: "#1a1a1a",
+        }}>
+          {p.name}
+        </span>
+        {p.nda && (
+          <span style={{
+            fontFamily: "var(--font-dm-mono), monospace",
+            fontSize: 9, letterSpacing: "0.08em",
+            border: "1px solid #F35900", color: "#F35900",
+            padding: "1px 6px", borderRadius: 100,
+            textTransform: "uppercase", flexShrink: 0,
+          }}>
+            NDA
+          </span>
+        )}
+      </div>
+
+      {/* Client */}
+      <div style={{
+        fontFamily: "var(--font-dm-mono), monospace",
+        fontSize: 11, color: "rgba(58,58,58,0.5)",
+        marginTop: 4,
+      }}>
+        {p.client}
       </div>
     </div>
   );
@@ -519,17 +498,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
   if (isMobile) {
     return (
       <>
-        <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
-          <p style={{
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 16, fontWeight: 500, fontStyle: "italic",
-            letterSpacing: "-0.03em", color: "#3A3A3A",
-            lineHeight: 1.5, margin: "0 0 8px",
-          }}>
-            Harsha is an{" "}
-            <span style={{ color: "#E8420A" }}>end-to-end designer</span>.
-            She thinks in systems, designs for people, and ships with AI.
-          </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 32, paddingTop: 24, paddingBottom: 24 }}>
           {displayProjects.map((p, i) => (
             <MobileProjectCard
               key={i}
