@@ -45,8 +45,8 @@ async function fetchArticles(): Promise<Article[]> {
         .replace(/\s+/g, " ")
         .trim();
 
-      const description = stripped.length > 180
-        ? stripped.slice(0, 177) + "..."
+      const description = stripped.length > 320
+        ? stripped.slice(0, 317) + "..."
         : stripped;
 
       const link = item.match(/<link>(.*?)<\/link>/)?.[1]

@@ -163,6 +163,7 @@ export default function NotepadWindow({
             display: "flex",
             flexDirection: "column",
             minHeight: 272,
+            overflow: "hidden",
           }}
         >
           <div
@@ -193,7 +194,7 @@ export default function NotepadWindow({
               fontSize: 11,
               color: "#3A3A3A",
               lineHeight: 1.72,
-              flex: 1,
+              minHeight: 160,
             }}
           >
             {article.description}
