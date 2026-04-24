@@ -102,7 +102,7 @@ function ModalContent({ projectName, slug, onClose }: Props) {
           position: "fixed",
           top: "50%", left: "50%",
           transform: "translate(-50%, -50%)",
-          width: 380,
+          width: "min(380px, calc(100vw - 48px))",
           backgroundColor: "#FAFAF8",
           border: "0.5px solid rgba(0,0,0,0.12)",
           borderRadius: 12,

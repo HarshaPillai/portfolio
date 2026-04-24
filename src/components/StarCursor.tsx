@@ -22,7 +22,7 @@ export default function StarCursor() {
   const lastTime = useRef<number>(0);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 768) return;
+    if (typeof window !== "undefined" && "ontouchstart" in window) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;

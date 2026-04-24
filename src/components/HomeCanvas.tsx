@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { LandingProject } from "@/types";
@@ -153,104 +152,27 @@ function NavArrow({
   );
 }
 
-// ─── Mobile project card ──────────────────────────────────────────────────────
-function MobileProjectCard({
-  p,
-  onNdaClick,
-}: {
-  p: DisplayProject;
-  onNdaClick: (name: string, slug: string) => void;
-}) {
-  const router = useRouter();
-
-  const handleClick = () => {
-    if (p.nda && p.isLive) {
-      onNdaClick(p.name, p.slug);
-    } else if (p.isExternal && p.externalUrl) {
-      window.open(p.externalUrl, "_blank", "noopener,noreferrer");
-    } else if (p.isLive) {
-      router.push(`/projects/${p.slug}`);
-    }
-  };
-
+// ─── Coming soon toast ────────────────────────────────────────────────────────
+function ToastNotification({ visible }: { visible: boolean }) {
   return (
-    <div
-      onClick={handleClick}
-      style={{
-        width: "100%",
-        borderRadius: 4,
-        overflow: "hidden",
-        border: "1px solid rgba(0,0,0,0.08)",
-        cursor: p.isLive || (p.isExternal && p.externalUrl) ? "pointer" : "default",
-        backgroundColor: "#f0f0f0",
-        position: "relative",
-      }}
-    >
-      {/* Thumbnail */}
-      {p.thumbnailUrl ? (
-        <div style={{ position: "relative", width: "100%", aspectRatio: "3/2" }}>
-          <Image
-            src={p.thumbnailUrl}
-            alt={p.name}
-            fill
-            style={{ objectFit: "cover", filter: p.nda ? "blur(8px)" : "none" }}
-            sizes="(max-width: 768px) 100vw"
-          />
-          {p.nda && (
-            <div style={{
-              position: "absolute", inset: 0,
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              backgroundColor: "rgba(0,0,0,0.38)", gap: 6,
-            }}>
-              <svg width="14" height="18" viewBox="0 0 16 20" fill="none">
-                <rect x="1" y="9" width="14" height="10" rx="2" fill="rgba(255,255,255,0.88)" />
-                <path d="M4 9V6a4 4 0 0 1 8 0v3" stroke="rgba(255,255,255,0.88)" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div style={{ width: "100%", aspectRatio: "3/2", backgroundColor: "#C4C4C4" }} />
-      )}
-
-      {/* Card info */}
-      <div style={{ padding: "14px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <span style={{
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 15, fontWeight: 500,
-            letterSpacing: "-0.03em", color: "#1a1a1a",
-          }}>
-            {p.name}
-          </span>
-          {p.nda && (
-            <span style={{
-              fontFamily: "var(--font-dm-mono), monospace",
-              fontSize: 9, letterSpacing: "0.08em",
-              border: "1px solid #F35900", color: "#F35900",
-              padding: "1px 6px", borderRadius: 100,
-              textTransform: "uppercase", flexShrink: 0,
-            }}>
-              NDA
-            </span>
-          )}
-        </div>
-        <div style={{
-          fontFamily: "var(--font-dm-mono), monospace",
-          fontSize: 11, color: "#B5B5B5", letterSpacing: "-0.04em",
-        }}>
-          {p.client}
-        </div>
-        {!p.isLive && (
-          <div style={{
-            fontFamily: "var(--font-dm-mono), monospace",
-            fontSize: 10, color: "#B5B5B5", marginTop: 6, letterSpacing: "0.04em",
-          }}>
-            Coming Soon
-          </div>
-        )}
-      </div>
+    <div style={{
+      position: "fixed",
+      bottom: 32,
+      left: "50%",
+      transform: `translate(-50%, ${visible ? 0 : 12}px)`,
+      opacity: visible ? 1 : 0,
+      transition: "opacity 0.2s ease, transform 0.2s ease",
+      backgroundColor: "#1a1a1a",
+      color: "#fff",
+      fontFamily: "var(--font-dm-mono), monospace",
+      fontSize: 12, letterSpacing: "-0.04em",
+      padding: "8px 20px",
+      borderRadius: 100,
+      pointerEvents: "none",
+      zIndex: 200,
+      whiteSpace: "nowrap",
+    }}>
+      Coming Soon
     </div>
   );
 }
@@ -283,9 +205,15 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
   const [introVisible, setIntroVisible]   = useState(false);
   const [ndaModalProject, setNdaModalProject] = useState<{ name: string; slug: string } | null>(null);
   const [isMobile, setIsMobile]           = useState(false);
+  const [toast, setToast]                 = useState(false);
+  const isMobileRef                       = useRef(false);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      const m = window.innerWidth < 768;
+      setIsMobile(m);
+      isMobileRef.current = m;
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -316,9 +244,17 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
       const ease    = introT * introT * (3 - 2 * introT);
       const isIntro = scrollProg < INTRO_END;
 
+      const mob = isMobileRef.current;
+      const rxStart = mob ? 80  : RADIUS_X_START;
+      const rxEnd   = mob ? 140 : RADIUS_X_END;
+      const ryStart = mob ? 45  : RADIUS_Y_START;
+      const ryEnd   = mob ? 85  : RADIUS_Y_END;
+      const wMin    = mob ? Math.round(WIDTH_MIN   * 0.65) : WIDTH_MIN;
+      const wRange  = mob ? Math.round(WIDTH_RANGE * 0.65) : WIDTH_RANGE;
+
       const cx = w * (0.50 + 0.60 * ease);
-      const rx = RADIUS_X_START + (RADIUS_X_END - RADIUS_X_START) * ease;
-      const ry = RADIUS_Y_START + (RADIUS_Y_END - RADIUS_Y_START) * ease;
+      const rx = rxStart + (rxEnd - rxStart) * ease;
+      const ry = ryStart + (ryEnd - ryStart) * ease;
 
       const textEl = introTextRef.current;
       if (textEl && scrollProg > 0) {
@@ -336,7 +272,7 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
         const y         = cy + Math.sin(ang) * ry;
         const proximity = (Math.cos(ang - ACTIVE_ANGLE) + 1) / 2;
 
-        const orbitW    = WIDTH_MIN + proximity * WIDTH_RANGE;
+        const orbitW    = wMin + proximity * wRange;
         const orbitH    = orbitW * ASPECT;
         const orbitBlur = (1 - proximity) * 8;
         const orbitOp   = 0.35 + proximity * 0.65;
@@ -348,14 +284,19 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
 
         const isNda   = displayProjectsRef.current[i]?.nda ?? false;
         const revealF = ndaRevealFactorRef.current;
-        // Blur and overlay both scale with reveal factor — 0 on load, full after first scroll
-        const finalBlur = isNda ? Math.max(blur, NDA_MIN_BLUR * revealF) : blur;
+        // On mobile skip NDA blur — just show the lock icon overlay
+        const finalBlur = (!mob && isNda) ? Math.max(blur, NDA_MIN_BLUR * revealF) : blur;
         const zIdx      = Math.round(proximity * 10);
+
+        // Clamp frame position to stay within viewport on mobile
+        const frameX = mob
+          ? Math.max(0, Math.min(x - width / 2, w - width))
+          : x - width / 2;
 
         const el = frameRefs.current[i];
         if (el) {
           gsap.set(el, {
-            x: x - width / 2,
+            x: frameX,
             y: y - height / 2,
             width, height,
             filter: `blur(${finalBlur}px)`,
@@ -500,6 +441,9 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
       window.open(p.externalUrl, "_blank", "noopener,noreferrer");
     } else if (p.isLive) {
       router.push(`/projects/${p.slug}`);
+    } else if (isMobileRef.current) {
+      setToast(true);
+      setTimeout(() => setToast(false), 2000);
     }
   }, [router]);
 
@@ -516,47 +460,19 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
           ? "View Case Study →"
           : "Coming Soon";
 
-  if (isMobile) {
-    return (
-      <>
-        <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
-          <p style={{
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 16, fontWeight: 500, fontStyle: "italic",
-            letterSpacing: "-0.03em", color: "#3A3A3A",
-            lineHeight: 1.5, margin: "0 0 8px",
-          }}>
-            Harsha is an{" "}
-            <span style={{ color: "#E8420A" }}>end-to-end designer</span>.
-            She thinks in systems, designs for people, and ships with AI.
-          </p>
-          {displayProjects.map((p, i) => (
-            <MobileProjectCard
-              key={i}
-              p={p}
-              onNdaClick={(name, slug) => setNdaModalProject({ name, slug })}
-            />
-          ))}
-        </div>
-        {ndaModalProject && (
-          <NDAModal
-            projectName={ndaModalProject.name}
-            slug={ndaModalProject.slug}
-            onClose={() => setNdaModalProject(null)}
-          />
-        )}
-      </>
-    );
-  }
-
   return (
     <div ref={outerRef} style={{ height: "500vh", contain: "layout" }}>
+      <ToastNotification visible={toast} />
       <div
         ref={stickyRef}
+        onClick={isMobile ? handleProjectClick : undefined}
         style={{
-          position: "sticky", top: 0, height: "100vh", overflow: "hidden",
+          position: "sticky", top: 0,
+          height: isMobile ? "calc(100vh - 52px)" : "100vh",
+          overflow: "hidden",
           opacity: introVisible ? 1 : 0,
           transition: "opacity 0.9s ease",
+          cursor: isMobile ? "pointer" : undefined,
         }}
       >
         {/* Carousel frames — thumbnail background if available */}
@@ -614,8 +530,8 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
           {". "}She thinks in systems, designs for people, and ships with AI.
         </div>
 
-        {/* Metadata panel */}
-        {proj && (
+        {/* Metadata panel — desktop only */}
+        {proj && !isMobile && (
           <div
             ref={metaRef}
             onClick={handleProjectClick}
@@ -676,18 +592,20 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
           </div>
         )}
 
-        {/* Scroll indicator */}
-        <div style={{
-          position: "absolute", bottom: 32, right: 32, zIndex: 25,
-          fontFamily: "var(--font-dm-mono), monospace",
-          fontSize: 11, letterSpacing: "-0.09em",
-          color: "#B5B5B5", userSelect: "none",
-        }}>
-          SCROLL&nbsp;
-          <span style={{ display: "inline-block", animation: "scrollBounce 1.5s ease-in-out infinite" }}>
-            ↓
-          </span>
-        </div>
+        {/* Scroll indicator — desktop only */}
+        {!isMobile && (
+          <div style={{
+            position: "absolute", bottom: 32, right: 32, zIndex: 25,
+            fontFamily: "var(--font-dm-mono), monospace",
+            fontSize: 11, letterSpacing: "-0.09em",
+            color: "#B5B5B5", userSelect: "none",
+          }}>
+            SCROLL&nbsp;
+            <span style={{ display: "inline-block", animation: "scrollBounce 1.5s ease-in-out infinite" }}>
+              ↓
+            </span>
+          </div>
+        )}
       </div>
 
       {/* NDA password modal */}

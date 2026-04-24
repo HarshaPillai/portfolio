@@ -41,10 +41,10 @@
   animation: bsidePulse 1.6s ease-in-out infinite;
 }
 
-/* ─── Overlay fade-in ─────────────────────────────────────────────────────────── */
+/* ─── Overlay fade-in + scale ─────────────────────────────────────────────────── */
 @keyframes overlayFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* ─── Responsive: mobile (≤768px) ───────────────────────────────────────────── */

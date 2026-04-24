@@ -55,11 +55,12 @@ function MobileOverlay({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 200,
+        zIndex: 1001,
         backgroundColor: "#F5F0E8",
         display: "flex",
         flexDirection: "column",
         animation: "overlayFadeIn 0.2s ease",
+        transformOrigin: "center",
       }}
     >
       {/* Top bar inside overlay */}
@@ -90,12 +91,17 @@ function MobileOverlay({
           style={{
             background: "none",
             border: "none",
-            padding: 4,
+            padding: 8,
             cursor: "pointer",
             fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 24,
+            fontSize: 32,
             color: "#3A3A3A",
             lineHeight: 1,
+            minHeight: 44,
+            minWidth: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           ×
@@ -110,7 +116,7 @@ function MobileOverlay({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: 12,
+          gap: 48,
         }}
       >
         {navLinks.map(({ href, label }) => (
@@ -120,12 +126,15 @@ function MobileOverlay({
             onClick={onClose}
             style={{
               fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-              fontSize: 32,
+              fontSize: 36,
               fontWeight: 500,
               letterSpacing: "-0.05em",
-              color: isActive(href) ? "#F35900" : "#3A3A3A",
+              color: isActive(href) ? "#F35900" : "rgba(58,58,58,0.4)",
               textDecoration: "none",
               lineHeight: 1.3,
+              minHeight: 44,
+              display: "flex",
+              alignItems: "center",
             }}
           >
             {label}
@@ -138,7 +147,7 @@ function MobileOverlay({
         style={{
           padding: "24px 24px 40px",
           display: "flex",
-          gap: 28,
+          gap: 32,
           alignItems: "center",
           justifyContent: "center",
           borderTop: "1px solid rgba(0,0,0,0.08)",
@@ -146,19 +155,19 @@ function MobileOverlay({
       >
         {[
           { href: "https://medium.com/@harshapillai", label: "Medium", icon: (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <svg width="32" height="32" viewBox="0 0 20 20" fill="none">
               <circle cx="6.5" cy="10" r="5.5" stroke="currentColor" strokeWidth="1.3" />
               <ellipse cx="14.5" cy="10" rx="2.5" ry="5.5" stroke="currentColor" strokeWidth="1.3" />
               <line x1="19" y1="4.5" x2="19" y2="15.5" stroke="currentColor" strokeWidth="1.3" />
             </svg>
           )},
           { href: "https://github.com/HarshaPillai", label: "GitHub", icon: (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <svg width="32" height="32" viewBox="0 0 20 20" fill="none">
               <path fillRule="evenodd" clipRule="evenodd" d="M10 1.5a8.5 8.5 0 00-2.688 16.573c.425.078.58-.184.58-.41v-1.437c-2.362.513-2.861-1.138-2.861-1.138-.386-.98-.943-1.241-.943-1.241-.771-.527.058-.516.058-.516.853.06 1.302.876 1.302.876.758 1.299 1.989.924 2.474.707.077-.549.297-.924.54-1.136-1.886-.214-3.868-.943-3.868-4.196 0-.927.331-1.684.875-2.277-.088-.215-.379-1.078.083-2.246 0 0 .713-.228 2.335.87a8.12 8.12 0 012.124-.286c.72.004 1.445.097 2.124.286 1.622-1.098 2.334-.87 2.334-.87.463 1.168.172 2.031.084 2.246.545.593.874 1.35.874 2.277 0 3.261-1.985 3.98-3.876 4.19.305.263.576.78.576 1.572v2.328c0 .228.153.492.584.409A8.502 8.502 0 0010 1.5z" fill="currentColor" />
             </svg>
           )},
           { href: "https://www.linkedin.com/in/harsha-pillai/", label: "LinkedIn", icon: (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <svg width="32" height="32" viewBox="0 0 20 20" fill="none">
               <rect x="1.5" y="1.5" width="17" height="17" rx="2.5" stroke="currentColor" strokeWidth="1.3" />
               <rect x="5" y="8.5" width="2.2" height="6" fill="currentColor" />
               <circle cx="6.1" cy="6.2" r="1.2" fill="currentColor" />
@@ -196,7 +205,7 @@ function MobileOverlay({
             fontSize: 11,
           }}
         >
-          <EnvelopeIcon size={18} />
+          <EnvelopeIcon size={32} />
           {emailCopied && <span style={{ color: "#F35900" }}>Copied!</span>}
         </button>
       </div>
@@ -320,7 +329,7 @@ export default function Sidebar() {
           left: 0,
           right: 0,
           height: 52,
-          zIndex: 150,
+          zIndex: 1000,
           backgroundColor: "#FFFFFF",
           borderBottom: "1px solid rgba(0,0,0,0.08)",
           alignItems: "center",

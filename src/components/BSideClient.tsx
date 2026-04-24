@@ -315,6 +315,14 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
   const [loaded, setLoaded]             = useState(false);
   const [lightboxItem, setLightboxItem] = useState<LabItem | null>(null);
   const [activeTag, setActiveTag]       = useState<string>("All");
+  const [isMobile, setIsMobile]         = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     const prev = document.body.style.backgroundColor;
@@ -371,7 +379,7 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
         style={{
           position: "relative",
           zIndex: 10,
-          padding: "72px 48px 80px",
+          padding: isMobile ? "72px 24px 80px" : "72px 48px 80px",
           opacity: loaded ? 1 : 0,
           transition: "opacity 0.45s ease 0.1s",
         }}
@@ -400,7 +408,7 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
         <div style={{ height: 1, backgroundColor: "rgba(255,255,255,0.06)", marginBottom: 36 }} />
 
         {/* Masonry grid */}
-        <div style={{ columns: "3 280px", gap: 12 }}>
+        <div style={{ columns: isMobile ? "1" : "3 280px", gap: 12 }}>
           {labs.length === 0
             ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
             : filteredLabs.map((item, i) => (

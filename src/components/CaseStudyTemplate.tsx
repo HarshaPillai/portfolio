@@ -389,7 +389,11 @@ export default function CaseStudyTemplate({ project }: { project: ProjectV2 }) {
 
             {project.challenge?.pullQuote && (
               <blockquote
-                style={{
+                style={isMobile ? {
+                  borderTop: "2px solid #E8420A",
+                  paddingTop: 16,
+                  margin: "32px 0",
+                } : {
                   borderLeft: "2px solid #E8420A",
                   paddingLeft: 20,
                   margin: "32px 0",
