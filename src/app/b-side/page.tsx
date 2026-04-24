@@ -17,6 +17,5 @@ const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
 
 export default async function BSidePage() {
   const labs = await client.fetch<LabItem[]>(QUERY);
-  console.log("[b-side server] fetched:", labs.length, "items");
   return <BSideClient labs={labs} />;
 }
