@@ -98,6 +98,70 @@ export const getLandingProjects = groq`
   }
 `;
 
+// ─── Full case study query (v2 schema) ───────────────────────────────────────
+
+export const getProjectBySlugFull = groq`
+  *[_type == "project" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    nda,
+    ndaTitle,
+    projectCategory,
+    headline,
+    tagline,
+    solutionLabel,
+    processLabel,
+    researchLabel,
+    year,
+    duration,
+    role,
+    team,
+    skills,
+    hook,
+    context,
+    challenge,
+    decisions[] {
+      _key,
+      decisionTitle,
+      decisionBody
+    },
+    outcome,
+    features[] {
+      _key,
+      number,
+      featureTitle,
+      featureDescription,
+      mediaType,
+      "imageUrl": image.asset->url,
+      videoUrl
+    },
+    showResearch,
+    researchSummary,
+    researchInsights[] {
+      _key,
+      label,
+      insight
+    },
+    researchImages[] {
+      _key,
+      "imageUrl": image.asset->url,
+      caption
+    },
+    showProcess,
+    showNextSteps,
+    nextSteps,
+    showLearnings,
+    learnings,
+    learningImages[] {
+      _key,
+      "imageUrl": image.asset->url,
+      caption
+    },
+    isLive
+  }
+`;
+
 // ─── B-Side / lab items ───────────────────────────────────────────────────────
 
 export const getLabItems = groq`
