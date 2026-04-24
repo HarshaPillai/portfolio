@@ -190,7 +190,15 @@ function ChLabel({ num, name }: { num: string; name: string }) {
 export default function CaseStudyTemplate({ project }: { project: ProjectV2 }) {
   const router = useRouter();
   const [activeChapter, setActiveChapter] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const sectionRefs = useRef<Array<HTMLElement | null>>([]);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // IntersectionObserver — update active chapter at 40% visibility
   useEffect(() => {
@@ -251,15 +259,17 @@ export default function CaseStudyTemplate({ project }: { project: ProjectV2 }) {
         ← Projects
       </button>
 
-      {/* Fixed right timeline */}
-      <ChapterTimeline
-        activeIdx={activeChapter}
-        onChapterClick={scrollToChapter}
-      />
+      {/* Fixed right timeline — desktop only */}
+      {!isMobile && (
+        <ChapterTimeline
+          activeIdx={activeChapter}
+          onChapterClick={scrollToChapter}
+        />
+      )}
 
       {/* Content area */}
-      <div style={{ padding: "80px 120px 0 24px" }}>
-        <div style={{ maxWidth: 720 }}>
+      <div style={{ padding: isMobile ? "80px 24px 0 24px" : "80px 120px 0 24px" }}>
+        <div style={{ maxWidth: isMobile ? "100%" : 720 }}>
 
           {/* ── Hero section ── */}
           <div style={{ marginBottom: 80 }}>
@@ -297,7 +307,7 @@ export default function CaseStudyTemplate({ project }: { project: ProjectV2 }) {
             <h1
               style={{
                 fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-                fontSize: 48,
+                fontSize: isMobile ? "clamp(26px, 6vw, 36px)" : 48,
                 fontWeight: 700,
                 letterSpacing: "-0.04em",
                 color: "#1a1a1a",

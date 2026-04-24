@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { LandingProject } from "@/types";
@@ -152,6 +153,108 @@ function NavArrow({
   );
 }
 
+// ─── Mobile project card ──────────────────────────────────────────────────────
+function MobileProjectCard({
+  p,
+  onNdaClick,
+}: {
+  p: DisplayProject;
+  onNdaClick: (name: string, slug: string) => void;
+}) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    if (p.nda && p.isLive) {
+      onNdaClick(p.name, p.slug);
+    } else if (p.isExternal && p.externalUrl) {
+      window.open(p.externalUrl, "_blank", "noopener,noreferrer");
+    } else if (p.isLive) {
+      router.push(`/projects/${p.slug}`);
+    }
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      style={{
+        width: "100%",
+        borderRadius: 4,
+        overflow: "hidden",
+        border: "1px solid rgba(0,0,0,0.08)",
+        cursor: p.isLive || (p.isExternal && p.externalUrl) ? "pointer" : "default",
+        backgroundColor: "#f0f0f0",
+        position: "relative",
+      }}
+    >
+      {/* Thumbnail */}
+      {p.thumbnailUrl ? (
+        <div style={{ position: "relative", width: "100%", aspectRatio: "3/2" }}>
+          <Image
+            src={p.thumbnailUrl}
+            alt={p.name}
+            fill
+            style={{ objectFit: "cover", filter: p.nda ? "blur(8px)" : "none" }}
+            sizes="(max-width: 768px) 100vw"
+          />
+          {p.nda && (
+            <div style={{
+              position: "absolute", inset: 0,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              backgroundColor: "rgba(0,0,0,0.38)", gap: 6,
+            }}>
+              <svg width="14" height="18" viewBox="0 0 16 20" fill="none">
+                <rect x="1" y="9" width="14" height="10" rx="2" fill="rgba(255,255,255,0.88)" />
+                <path d="M4 9V6a4 4 0 0 1 8 0v3" stroke="rgba(255,255,255,0.88)" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ width: "100%", aspectRatio: "3/2", backgroundColor: "#C4C4C4" }} />
+      )}
+
+      {/* Card info */}
+      <div style={{ padding: "14px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <span style={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontSize: 15, fontWeight: 500,
+            letterSpacing: "-0.03em", color: "#1a1a1a",
+          }}>
+            {p.name}
+          </span>
+          {p.nda && (
+            <span style={{
+              fontFamily: "var(--font-dm-mono), monospace",
+              fontSize: 9, letterSpacing: "0.08em",
+              border: "1px solid #F35900", color: "#F35900",
+              padding: "1px 6px", borderRadius: 100,
+              textTransform: "uppercase", flexShrink: 0,
+            }}>
+              NDA
+            </span>
+          )}
+        </div>
+        <div style={{
+          fontFamily: "var(--font-dm-mono), monospace",
+          fontSize: 11, color: "#B5B5B5", letterSpacing: "-0.04em",
+        }}>
+          {p.client}
+        </div>
+        {!p.isLive && (
+          <div style={{
+            fontFamily: "var(--font-dm-mono), monospace",
+            fontSize: 10, color: "#B5B5B5", marginTop: 6, letterSpacing: "0.04em",
+          }}>
+            Coming Soon
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function HomeCanvas({ projects }: { projects: LandingProject[] }) {
   const outerRef         = useRef<HTMLDivElement>(null);
   const stickyRef        = useRef<HTMLDivElement>(null);
@@ -179,6 +282,14 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
   const [metaHovered, setMetaHovered]     = useState(false);
   const [introVisible, setIntroVisible]   = useState(false);
   const [ndaModalProject, setNdaModalProject] = useState<{ name: string; slug: string } | null>(null);
+  const [isMobile, setIsMobile]           = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const router = useRouter();
 
@@ -404,6 +515,39 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
         : proj.isLive
           ? "View Case Study →"
           : "Coming Soon";
+
+  if (isMobile) {
+    return (
+      <>
+        <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
+          <p style={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontSize: 16, fontWeight: 500, fontStyle: "italic",
+            letterSpacing: "-0.03em", color: "#3A3A3A",
+            lineHeight: 1.5, margin: "0 0 8px",
+          }}>
+            Harsha is an{" "}
+            <span style={{ color: "#E8420A" }}>end-to-end designer</span>.
+            She thinks in systems, designs for people, and ships with AI.
+          </p>
+          {displayProjects.map((p, i) => (
+            <MobileProjectCard
+              key={i}
+              p={p}
+              onNdaClick={(name, slug) => setNdaModalProject({ name, slug })}
+            />
+          ))}
+        </div>
+        {ndaModalProject && (
+          <NDAModal
+            projectName={ndaModalProject.name}
+            slug={ndaModalProject.slug}
+            onClose={() => setNdaModalProject(null)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div ref={outerRef} style={{ height: "500vh", contain: "layout" }}>

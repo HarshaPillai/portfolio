@@ -41,30 +41,18 @@
   animation: bsidePulse 1.6s ease-in-out infinite;
 }
 
+/* ─── Overlay fade-in ─────────────────────────────────────────────────────────── */
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ─── Responsive: mobile (≤768px) ───────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .app-sidebar  { display: none !important; }
-  .app-content  { margin-left: 0 !important; }
-
-  .about-layout {
-    flex-direction: column !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-  .about-bio {
-    flex: 1 1 100% !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    overflow-y: visible !important;
-  }
-  .about-constellation {
-    flex: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 400px !important;
-    min-height: 400px !important;
-  }
+  .app-sidebar         { display: none !important; }
+  .app-content         { margin-left: 0 !important; padding-top: 52px !important; }
+  .social-icons-fixed  { display: none !important; }
+  .mobile-navbar       { display: flex !important; }
 }
 
 @layer base {

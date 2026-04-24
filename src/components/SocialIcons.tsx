@@ -76,6 +76,7 @@ export default function SocialIcons() {
 
   return (
     <div
+      className="social-icons-fixed"
       style={{
         position: "fixed",
         top: 32,
