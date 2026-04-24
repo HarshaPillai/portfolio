@@ -7,7 +7,6 @@ export default async function Home() {
   let projects: LandingProject[] = [];
   try {
     projects = await client.fetch<LandingProject[]>(getLandingProjects);
-    console.log("[home] projects order:", projects.map((p, i) => `${i}: order=${p.order} slug=${p.slug}`));
   } catch (err) {
     console.error("[home] failed to fetch projects:", err);
   }
