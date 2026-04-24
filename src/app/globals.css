@@ -53,7 +53,12 @@
   .app-content         { margin-left: 0 !important; padding-top: 52px !important; }
   .social-icons-fixed  { display: none !important; }
   .mobile-navbar       { display: flex !important; }
+  .cs-content          { padding: 80px 24px 80px !important; }
+  .cs-meta-grid        { grid-template-columns: 1fr !important; }
 }
+
+/* ─── Case study back link hover ────────────────────────────────────────────── */
+.cs-back-link:hover { color: #F35900 !important; }
 
 @layer base {
   *, *::before, *::after {
