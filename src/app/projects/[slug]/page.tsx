@@ -90,11 +90,15 @@ export default async function ProjectPage({ params }: Props) {
   let project: CaseStudyProject | null = null;
   try {
     project = await client.fetch<CaseStudyProject>(query, { slug });
+    console.log(`[ProjectPage] slug="${slug}" result:`, project ? `found (title: ${project.title})` : "null");
   } catch (err) {
-    console.error("[ProjectPage] Sanity fetch failed:", err);
+    console.error("[ProjectPage] Sanity fetch failed for slug:", slug, err);
   }
 
-  if (!project) notFound();
+  if (!project) {
+    console.warn(`[ProjectPage] notFound() called for slug="${slug}" — check Sanity for this document`);
+    notFound();
+  }
 
   const p = project as CaseStudyProject;
 
