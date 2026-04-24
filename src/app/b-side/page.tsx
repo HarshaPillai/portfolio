@@ -1,6 +1,8 @@
 import { client } from "@/lib/sanity";
 import BSideClient, { type LabItem } from "@/components/BSideClient";
-import StarCursor from "@/components/StarCursor";
+import dynamic from "next/dynamic";
+
+const StarCursor = dynamic(() => import("@/components/StarCursor"), { ssr: false });
 
 const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
   _id,

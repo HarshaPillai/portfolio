@@ -115,3 +115,41 @@ export const getLabItems = groq`
     "thumbnail": thumbnail.asset->url
   }
 `;
+
+
+export const getProjectBySlugFull = groq`
+  *[_type == "project" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    nda,
+    ndaTitle,
+    projectCategory,
+    headline,
+    tagline,
+    year,
+    duration,
+    role,
+    team,
+    skills,
+    hook,
+    context,
+    challenge,
+    decisions[] {
+      _key,
+      decisionTitle,
+      decisionBody
+    },
+    outcome,
+    features[] {
+      _key,
+      number,
+      featureTitle,
+      featureDescription,
+      mediaType,
+      "imageUrl": image.asset->url,
+      videoUrl
+    },
+    isLive
+  }
+`;
