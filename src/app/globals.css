@@ -60,6 +60,9 @@
 /* ─── Case study back link hover ────────────────────────────────────────────── */
 .cs-back-link:hover { color: #F35900 !important; }
 
+/* ─── Case study mobile chapter nav: hide scrollbar ─────────────────────────── */
+.cs-mobile-nav::-webkit-scrollbar { display: none; }
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
