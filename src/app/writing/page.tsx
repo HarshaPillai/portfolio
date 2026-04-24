@@ -22,8 +22,8 @@ async function fetchArticles(): Promise<Article[]> {
 
       const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? "";
 
-      const rawDesc = item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/)?.[1]
-        ?? item.match(/<description>([\s\S]*?)<\/description>/)?.[1]
+      const rawDesc = item.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/)?.[1]
+        ?? item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/)?.[1]
         ?? "";
 
       const stripped = rawDesc

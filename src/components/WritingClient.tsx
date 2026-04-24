@@ -6,16 +6,16 @@ import type { Article } from "./types";
 export type { Article };
 
 const POSITIONS = [
-  { x: 80,  y: 60  },
-  { x: 520, y: 40  },
-  { x: 280, y: 180 },
-  { x: 740, y: 120 },
-  { x: 140, y: 400 },
-  { x: 600, y: 320 },
-  { x: 960, y: 80  },
-  { x: 420, y: 520 },
-  { x: 820, y: 440 },
-  { x: 200, y: 640 },
+  { x: 80,  y: 60   },
+  { x: 520, y: 40   },
+  { x: 280, y: 380  },
+  { x: 740, y: 120  },
+  { x: 140, y: 700  },
+  { x: 600, y: 520  },
+  { x: 960, y: 280  },
+  { x: 420, y: 820  },
+  { x: 820, y: 640  },
+  { x: 200, y: 1000 },
 ];
 
 export default function WritingClient({ articles }: { articles: Article[] }) {
@@ -28,7 +28,7 @@ export default function WritingClient({ articles }: { articles: Article[] }) {
 
   return (
     <div style={{ width: "100%", height: "100vh", overflow: "auto", backgroundColor: "transparent" }}>
-      <div style={{ position: "relative", width: 1600, height: 1200, backgroundColor: "#FFFFFF" }}>
+      <div style={{ position: "relative", width: 1600, height: 1600, backgroundColor: "#FFFFFF" }}>
         {articles.map((article, i) => {
           const pos = POSITIONS[i % POSITIONS.length];
           return (
