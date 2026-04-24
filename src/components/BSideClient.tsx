@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import BsideLoader from "@/components/BsideLoader";
@@ -24,6 +24,82 @@ export type LabItem = {
   tags?: string[];
   thumbnailUrl?: string;
 };
+
+// ─── Star field ───────────────────────────────────────────────────────────────
+
+const STARS = Array.from({ length: 52 }, (_, i) => {
+  // Deterministic pseudo-random using index so it's stable across renders
+  const seed = (i * 2654435761) >>> 0;
+  const x = ((seed ^ (seed >> 16)) % 10000) / 100;
+  const y = (((seed * 1664525 + 1013904223) >>> 0) % 10000) / 100;
+  const opacity = 0.3 + (((seed * 22695477 + 1) >>> 0) % 1000) / 2000;
+  const size = 1 + (((seed * 1664525 + 22695477) >>> 0) % 2);
+  return { x, y, opacity, size: size || 1 };
+});
+
+function StarField() {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 1,
+        overflow: "hidden",
+      }}
+    >
+      {STARS.map((star, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${star.x}%`,
+            top: `${star.y}%`,
+            width: star.size === 1 ? 1 : 2,
+            height: star.size === 1 ? 1 : 2,
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            opacity: star.opacity,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Tag pill ─────────────────────────────────────────────────────────────────
+
+function TagPill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+        fontSize: 10,
+        letterSpacing: "0.05em",
+        textTransform: "uppercase",
+        background: active ? "#F35900" : "transparent",
+        color: active ? "#ffffff" : "#F35900",
+        border: "1px solid #F35900",
+        borderRadius: 2,
+        padding: "5px 10px",
+        cursor: "pointer",
+        transition: "background 0.15s ease, color 0.15s ease",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
 
 // ─── Status pip ───────────────────────────────────────────────────────────────
 
@@ -56,7 +132,17 @@ function StatusPip({ status }: { status?: string }) {
 
 // ─── Lab card ─────────────────────────────────────────────────────────────────
 
-function LabCard({ item, onClick, priority }: { item: LabItem; onClick: (item: LabItem) => void; priority?: boolean }) {
+function LabCard({
+  item,
+  onClick,
+  priority,
+  visible,
+}: {
+  item: LabItem;
+  onClick: (item: LabItem) => void;
+  priority?: boolean;
+  visible: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -70,12 +156,13 @@ function LabCard({ item, onClick, priority }: { item: LabItem; onClick: (item: L
         cursor: "pointer",
         borderRadius: 4,
         border: `1px solid ${hovered ? "#FF5500" : "rgba(255,255,255,0.06)"}`,
-        transition: "border-color 0.2s ease",
+        transition: "border-color 0.2s ease, opacity 0.3s ease, transform 0.3s ease",
         breakInside: "avoid",
         marginBottom: 12,
         display: "block",
-        willChange: "transform",
-        transform: "translateZ(0)",
+        willChange: "transform, opacity",
+        transform: visible ? "translateZ(0)" : "translateY(6px) translateZ(0)",
+        opacity: visible ? 1 : 0,
       }}
     >
       {item.thumbnailUrl ? (
@@ -227,12 +314,26 @@ function Lightbox({ item, onClose }: { item: LabItem; onClose: () => void }) {
 export default function BSideClient({ labs }: { labs: LabItem[] }) {
   const [loaded, setLoaded]             = useState(false);
   const [lightboxItem, setLightboxItem] = useState<LabItem | null>(null);
+  const [activeTag, setActiveTag]       = useState<string>("All");
 
   useEffect(() => {
     const prev = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = "#0A0A0A";
+    document.body.style.backgroundColor = "#0a0f1e";
     return () => { document.body.style.backgroundColor = prev; };
   }, []);
+
+  // Collect unique tags from all items
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    labs.forEach(item => item.tags?.forEach(t => tagSet.add(t)));
+    return ["All", ...Array.from(tagSet).sort()];
+  }, [labs]);
+
+  // Filter items by active tag
+  const filteredLabs = useMemo(() => {
+    if (activeTag === "All") return labs;
+    return labs.filter(item => item.tags?.includes(activeTag));
+  }, [labs, activeTag]);
 
   const handleCardClick = (item: LabItem) => {
     if (item.type === "external" && item.externalUrl) {
@@ -243,14 +344,25 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0A", position: "relative", overflowY: "auto", contain: "layout" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(180deg, #0a0f1e 0%, #0d1830 100%)",
+        position: "relative",
+        overflowY: "auto",
+        contain: "layout",
+      }}
+    >
+      {/* Star field */}
+      <StarField />
+
       {/* CD loader */}
       {!loaded && (
         <BsideLoader direction="enter" onComplete={() => setLoaded(true)} />
       )}
 
-      {/* ShaderGradient */}
-      <div style={{ opacity: loaded ? 1 : 0, transition: "opacity 0.5s ease" }}>
+      {/* ShaderGradient — keep but reduce opacity to blend with night sky */}
+      <div style={{ opacity: loaded ? 0.18 : 0, transition: "opacity 0.5s ease" }}>
         <BsideGradient />
       </div>
 
@@ -264,25 +376,26 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
           transition: "opacity 0.45s ease 0.1s",
         }}
       >
-        <div
-          style={{
-            fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
-            fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase",
-            color: "rgba(255,255,255,0.2)", marginBottom: 10,
-          }}
-        >
-          B-Side / Experiments
-        </div>
-
-        <h1
-          style={{
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontSize: 28, fontWeight: 300, color: "rgba(255,255,255,0.85)",
-            letterSpacing: "-0.04em", margin: "0 0 20px", lineHeight: 1.15,
-          }}
-        >
-          B-Side
-        </h1>
+        {/* Tag filter pills */}
+        {allTags.length > 1 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              marginBottom: 36,
+            }}
+          >
+            {allTags.map(tag => (
+              <TagPill
+                key={tag}
+                label={tag}
+                active={activeTag === tag}
+                onClick={() => setActiveTag(tag)}
+              />
+            ))}
+          </div>
+        )}
 
         <div style={{ height: 1, backgroundColor: "rgba(255,255,255,0.06)", marginBottom: 36 }} />
 
@@ -290,10 +403,33 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
         <div style={{ columns: "3 280px", gap: 12 }}>
           {labs.length === 0
             ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
-            : labs.map((item, i) => (
-                <LabCard key={item._id} item={item} onClick={handleCardClick} priority={i < 2} />
+            : filteredLabs.map((item, i) => (
+                <LabCard
+                  key={item._id}
+                  item={item}
+                  onClick={handleCardClick}
+                  priority={i < 2}
+                  visible={true}
+                />
               ))}
         </div>
+
+        {/* Empty state when tag has no items */}
+        {labs.length > 0 && filteredLabs.length === 0 && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "80px 0",
+              fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+              fontSize: 11,
+              color: "rgba(255,255,255,0.2)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+            }}
+          >
+            No items tagged &ldquo;{activeTag}&rdquo;
+          </div>
+        )}
       </div>
 
       {lightboxItem && (
