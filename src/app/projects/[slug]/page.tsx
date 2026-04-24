@@ -2,7 +2,7 @@ import { notFound }   from "next/navigation";
 import { cookies }    from "next/headers";
 import Image          from "next/image";
 import Link           from "next/link";
-import { client }     from "@/lib/sanity";
+import { sanityClient } from "@/lib/sanity";
 import NDAGate        from "@/components/NDAGate";
 import ChapterNav     from "@/components/ChapterNav";
 
@@ -79,7 +79,7 @@ type CaseStudyProject = {
 
 export async function generateStaticParams() {
   try {
-    const slugs = await client.fetch<Array<{ slug: string }>>(
+    const slugs = await sanityClient.fetch<Array<{ slug: string }>>(
       `*[_type == "project"]{ "slug": slug.current }`,
     );
     return (slugs ?? []).map((s: { slug: string }) => ({ slug: s.slug }));
@@ -97,9 +97,9 @@ export default async function ProjectPage({ params }: Props) {
 
   let project: CaseStudyProject | null = null;
   try {
-    project = await client.fetch<CaseStudyProject>(query, { slug });
-  } catch {
-    // Sanity unavailable
+    project = await sanityClient.fetch<CaseStudyProject>(query, { slug });
+  } catch (err) {
+    console.error("[ProjectPage] Sanity fetch failed:", err);
   }
 
   if (!project) notFound();
