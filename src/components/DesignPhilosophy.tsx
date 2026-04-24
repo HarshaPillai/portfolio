@@ -11,11 +11,11 @@ const rings = [
     nodes: [
       {
         n: "Competitive dancer",
-        d: "She trained as a competitive dancer for years. That taught her something no classroom did — that talent is just the starting point. The people who get better are the ones who show up anyway, especially when it is not going well. She brings that to everything.",
+        d: "She trained as a competitive dancer for years. That taught her something no classroom did — that talent is just the starting point. The people who get better are the ones who show up anyway, especially when it is not going well.",
       },
       {
         n: "Pattern recognition",
-        d: "She has solved puzzles every day since she learned the rules of sudoku when she was 8 years old. Her brain finds patterns before she consciously looks for them — in data, in behavior, in systems. If you think that is not a real skill, challenge her to a game of Pipes.",
+        d: "She has solved puzzles every day since she learned the rules of sudoku when she was 8 years old. Her brain finds patterns before she consciously looks for them — in data, in behavior, in systems.",
       },
       {
         n: "Care as material",
@@ -23,7 +23,7 @@ const rings = [
       },
       {
         n: "Communication as superpower",
-        d: "She speaks multiple languages, trained in Bharatanatyam, and grew up moving between cultures. Communication has never been just words — it is visual, physical, relational. She takes real pride in her ability to find a genuine connection with almost anyone.",
+        d: "Communication has never been just words, it is visual, physical, relational. She takes real pride in her ability to find a genuine connection with almost anyone.",
       },
     ],
   },
@@ -39,15 +39,15 @@ const rings = [
       },
       {
         n: "Technical fluency",
-        d: "She can build what she designs. That changes everything about how she thinks before she ever opens Figma — she knows what the constraint actually is, not just what it looks like from the outside.",
+        d: "She can build what she designs. That changes everything about how she thinks before she ever opens Figma — she knows what the constraint actually is.",
       },
       {
         n: "Research rigor",
-        d: "Her thesis was a year inside genuinely ambiguous territory — intergenerational care, what technology misses about human connection. She was trained to ask better questions, not faster ones.",
+        d: "Her thesis was a year inside genuinely ambiguous territory — intergenerational care, what technology misses about human connection.",
       },
       {
         n: "Responsible AI",
-        d: "She was in CS school when ML first got loud. She sat in the early seminars about environmental cost and ethical risk. She understood then that there was a line. She still designs like crossing it has consequences.",
+        d: "She was in CS school when ML first got loud. She sat in the early seminars about environmental cost and ethical risk. She understood then that there was a line.",
       },
     ],
   },
@@ -59,7 +59,7 @@ const rings = [
     nodes: [
       {
         n: "Designing for consequences",
-        d: "When pursuing her MFA, Professor Allan Chochinov taught her that designers are in the consequence business. The question she keeps returning to is not what can we build — it is what happens after we do. That question does not have a comfortable answer. She does not think it should.",
+        d: "When pursuing her MFA, Professor Allan Chochinov taught her that designers are in the consequence business. The question she keeps returning to is not what can we build — it is what happens after we do.",
       },
       {
         n: "Digital loneliness",
@@ -71,7 +71,7 @@ const rings = [
       },
       {
         n: "The pace problem",
-        d: "Products ship faster than people change. The humans using our software are the same people they have always been — same needs, same fears, same need to feel like someone thought about them. We keep designing like they are not.",
+        d: "Products ship faster than people change. The humans using our software are the same people they have always been — same needs, same fears, same need to feel like someone thought about them.",
       },
     ],
   },
@@ -242,7 +242,7 @@ export default function DesignPhilosophy() {
       ctx.font         = "8px 'DM Mono', monospace";
       ctx.textAlign    = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.fillText("MY DESIGN",  cx, cy - 4);
+      ctx.fillText("HARSHA'S DESIGN",  cx, cy - 4);
       ctx.fillText("PHILOSOPHY", cx, cy + 7);
     }
 
