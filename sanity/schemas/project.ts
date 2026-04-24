@@ -8,6 +8,12 @@ export const projectType = {
   fields: [
     // ── LANDING OVERVIEW (always shown) ───────────────────────
     {
+      name: "order",
+      title: "Display Order",
+      type: "number",
+      description: "Controls the order projects appear on the landing page. Lower = first.",
+    },
+    {
       name: "client",
       title: "Client",
       type: "string",
