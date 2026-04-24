@@ -13,8 +13,12 @@ export default async function ProjectPage({ params }: Props) {
   const { slug } = await params;
 
   const project = await client.fetch(getProjectBySlugFull, { slug });
+  console.log(`[ProjectPage] slug="${slug}" result:`, project ? `found (title: ${project.title})` : "null");
 
-  if (!project) notFound();
+  if (!project) {
+    console.warn(`[ProjectPage] notFound() called for slug="${slug}" — check Sanity for this document`);
+    notFound();
+  }
 
   if (project.nda) {
     const cookieStore = await cookies();
