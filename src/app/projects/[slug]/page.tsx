@@ -2,11 +2,9 @@ import { notFound }   from "next/navigation";
 import { cookies }    from "next/headers";
 import Image          from "next/image";
 import Link           from "next/link";
-import { sanityClient } from "@/lib/sanity";
+import { client }     from "@/lib/sanity";
 import NDAGate        from "@/components/NDAGate";
 import ChapterNav     from "@/components/ChapterNav";
-
-// ─── GROQ query ───────────────────────────────────────────────────────────────
 
 const query = `*[_type == "project" && slug.current == $slug][0] {
   title,
@@ -41,8 +39,6 @@ const query = `*[_type == "project" && slug.current == $slug][0] {
   isNDA: nda
 }`;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Feature = {
   number?:             string;
   featureTitle?:       string;
@@ -63,7 +59,7 @@ type CaseStudyProject = {
   year?:            string;
   duration?:        string;
   role?:            string;
-  team?:            string;
+  team?:            string[];
   skills?:          string[];
   hook?:            string;
   context?:         string;
@@ -75,11 +71,9 @@ type CaseStudyProject = {
   isNDA?:           boolean;
 };
 
-// ─── Static params ────────────────────────────────────────────────────────────
-
 export async function generateStaticParams() {
   try {
-    const slugs = await sanityClient.fetch<Array<{ slug: string }>>(
+    const slugs = await client.fetch<Array<{ slug: string }>>(
       `*[_type == "project"]{ "slug": slug.current }`,
     );
     return (slugs ?? []).map((s: { slug: string }) => ({ slug: s.slug }));
@@ -88,8 +82,6 @@ export async function generateStaticParams() {
   }
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function ProjectPage({ params }: Props) {
@@ -97,17 +89,15 @@ export default async function ProjectPage({ params }: Props) {
 
   let project: CaseStudyProject | null = null;
   try {
-    project = await sanityClient.fetch<CaseStudyProject>(query, { slug });
+    project = await client.fetch<CaseStudyProject>(query, { slug });
   } catch (err) {
     console.error("[ProjectPage] Sanity fetch failed:", err);
   }
 
   if (!project) notFound();
 
-  // Non-null cast: notFound() throws so project is always defined below
   const p = project as CaseStudyProject;
 
-  // ── NDA gate ────────────────────────────────────────────────────────────────
   if (p.nda) {
     const cookieStore = await cookies();
     if (cookieStore.get("nda_access")?.value !== "true") {
@@ -117,16 +107,13 @@ export default async function ProjectPage({ params }: Props) {
 
   const displayTitle = p.nda && p.ndaTitle ? p.ndaTitle : p.title;
 
-  // Which chapters have content
   const availableIds: string[] = [];
-  if (p.hook)                                    availableIds.push("hook");
-  if (p.context)                                 availableIds.push("context");
-  if (p.challenge)                               availableIds.push("challenge");
-  if (p.decisions && p.decisions.length > 0)    availableIds.push("decisions");
-  if (p.outcome)                                 availableIds.push("outcome");
-  if (p.features  && p.features.length  > 0)    availableIds.push("features");
-
-  // ── Reusable style objects ──────────────────────────────────────────────────
+  if (p.hook)                                 availableIds.push("hook");
+  if (p.context)                              availableIds.push("context");
+  if (p.challenge)                            availableIds.push("challenge");
+  if (p.decisions && p.decisions.length > 0) availableIds.push("decisions");
+  if (p.outcome)                              availableIds.push("outcome");
+  if (p.features  && p.features.length  > 0) availableIds.push("features");
 
   const bodyText = {
     fontFamily: "var(--font-jakarta), system-ui, sans-serif",
@@ -156,7 +143,7 @@ export default async function ProjectPage({ params }: Props) {
     margin:     0,
   } as const;
 
-  const chapterLabelStyle = {
+  const chapterLabel = {
     fontFamily:    "var(--font-dm-mono), monospace",
     fontSize:      10,
     textTransform: "uppercase" as const,
@@ -166,17 +153,17 @@ export default async function ProjectPage({ params }: Props) {
     display:       "block",
   };
 
+  const teamValue = Array.isArray(p.team)
+    ? p.team.join(", ")
+    : p.team || "Solo";
+
   return (
     <>
       <ChapterNav availableIds={availableIds} />
 
-      <div
-        className="cs-content"
-        style={{ maxWidth: 860, margin: "0 auto", padding: "60px 48px 120px" }}
-      >
-        {/* ── SECTION 1: HEADER ─────────────────────────────────────────────── */}
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "60px 48px 120px" }}>
 
-        {/* Breadcrumb */}
+        {/* BREADCRUMB */}
         <p style={{
           fontFamily:    "var(--font-dm-mono), monospace",
           fontSize:      11,
@@ -185,11 +172,10 @@ export default async function ProjectPage({ params }: Props) {
           textTransform: "uppercase",
           margin:        "0 0 24px",
         }}>
-          {displayTitle}
-          {p.projectCategory ? ` / ${p.projectCategory}` : ""}
+          {displayTitle}{p.projectCategory ? ` / ${p.projectCategory}` : ""}
         </p>
 
-        {/* Headline */}
+        {/* HEADLINE */}
         {p.headline && (
           <h1 style={{
             fontFamily:    "var(--font-jakarta), system-ui, sans-serif",
@@ -204,7 +190,7 @@ export default async function ProjectPage({ params }: Props) {
           </h1>
         )}
 
-        {/* Tagline */}
+        {/* TAGLINE */}
         {p.tagline && (
           <p style={{
             fontFamily: "var(--font-jakarta), system-ui, sans-serif",
@@ -219,40 +205,38 @@ export default async function ProjectPage({ params }: Props) {
           </p>
         )}
 
-        {/* Metadata 2×2 grid */}
-        <div
-          className="cs-meta-grid"
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px 40px" }}
-        >
+        {/* METADATA GRID */}
+        <div style={{
+          display:             "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap:                 "24px 40px",
+        }}>
           <div>
             <span style={metaLabel}>Role</span>
             <p style={metaValue}>{p.role || "—"}</p>
           </div>
-
           <div>
             <span style={metaLabel}>Timeline</span>
             <p style={metaValue}>{p.duration || "—"}</p>
           </div>
-
           <div>
             <span style={metaLabel}>Team</span>
-            <p style={metaValue}>{p.team || "Solo"}</p>
+            <p style={metaValue}>{teamValue}</p>
           </div>
-
           <div>
             <span style={metaLabel}>Skills</span>
             {p.skills && p.skills.length > 0 ? (
               <div>
                 {p.skills.map((skill) => (
                   <span key={skill} style={{
-                    background:    "rgba(0,0,0,0.05)",
-                    borderRadius:  99,
-                    padding:       "3px 10px",
-                    fontSize:      11,
-                    fontFamily:    "var(--font-dm-mono), monospace",
-                    display:       "inline-block",
-                    margin:        "2px 3px",
-                    color:         "#3A3A3A",
+                    background:   "rgba(0,0,0,0.05)",
+                    borderRadius: 99,
+                    padding:      "3px 10px",
+                    fontSize:     11,
+                    fontFamily:   "var(--font-dm-mono), monospace",
+                    display:      "inline-block",
+                    margin:       "2px 3px",
+                    color:        "#3A3A3A",
                   }}>
                     {skill}
                   </span>
@@ -264,19 +248,17 @@ export default async function ProjectPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Divider */}
+        {/* DIVIDER */}
         <div style={{
           height:          1,
           backgroundColor: "rgba(0,0,0,0.08)",
           margin:          "48px 0 64px",
         }} />
 
-        {/* ── SECTION 2: CHAPTERS ───────────────────────────────────────────── */}
-
         {/* 01 — HOOK */}
         {p.hook && (
           <div id="hook" style={{ marginBottom: 72 }}>
-            <span style={chapterLabelStyle}>01 — HOOK</span>
+            <span style={chapterLabel}>01 — Hook</span>
             <p style={{
               fontFamily: "var(--font-jakarta), system-ui, sans-serif",
               fontSize:   18,
@@ -294,7 +276,7 @@ export default async function ProjectPage({ params }: Props) {
         {/* 02 — CONTEXT */}
         {p.context && (
           <div id="context" style={{ marginBottom: 72 }}>
-            <span style={chapterLabelStyle}>02 — CONTEXT</span>
+            <span style={chapterLabel}>02 — Context</span>
             <p style={bodyText}>{p.context}</p>
           </div>
         )}
@@ -302,7 +284,7 @@ export default async function ProjectPage({ params }: Props) {
         {/* 03 — CHALLENGE */}
         {p.challenge && (
           <div id="challenge" style={{ marginBottom: 72 }}>
-            <span style={chapterLabelStyle}>03 — CHALLENGE</span>
+            <span style={chapterLabel}>03 — Challenge</span>
             <p style={bodyText}>{p.challenge}</p>
           </div>
         )}
@@ -310,7 +292,7 @@ export default async function ProjectPage({ params }: Props) {
         {/* 04 — KEY DECISIONS */}
         {p.decisions && p.decisions.length > 0 && (
           <div id="decisions" style={{ marginBottom: 72 }}>
-            <span style={chapterLabelStyle}>04 — KEY DECISIONS</span>
+            <span style={chapterLabel}>04 — Key Decisions</span>
             {p.decisions.map((d, i) => (
               <div key={i} style={{
                 borderLeft:   "2px solid rgba(243,89,0,0.2)",
@@ -336,20 +318,18 @@ export default async function ProjectPage({ params }: Props) {
         {/* 05 — OUTCOME */}
         {p.outcome && (
           <div id="outcome" style={{ marginBottom: 72 }}>
-            <span style={chapterLabelStyle}>05 — OUTCOME</span>
+            <span style={chapterLabel}>05 — Outcome</span>
             <p style={bodyText}>{p.outcome}</p>
           </div>
         )}
 
-        {/* ── SECTION 3: FEATURES ───────────────────────────────────────────── */}
+        {/* 06 — FEATURES */}
         {p.features && p.features.length > 0 && (
           <div id="features" style={{ marginBottom: 72 }}>
-            <span style={{ ...chapterLabelStyle, marginBottom: 16 }}>06 — FEATURES</span>
-
+            <span style={{ ...chapterLabel, marginBottom: 32 }}>06 — Features</span>
             {p.features.map((f, i) => (
               <div key={i} style={{ marginBottom: 64 }}>
-                {/* Number + title */}
-                <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                   {f.number && (
                     <span style={{
                       fontFamily:   "var(--font-dm-mono), monospace",
@@ -358,8 +338,6 @@ export default async function ProjectPage({ params }: Props) {
                       background:   "rgba(243,89,0,0.08)",
                       borderRadius: 99,
                       padding:      "2px 8px",
-                      marginRight:  10,
-                      display:      "inline-block",
                       flexShrink:   0,
                     }}>
                       {f.number}
@@ -377,8 +355,6 @@ export default async function ProjectPage({ params }: Props) {
                     </span>
                   )}
                 </div>
-
-                {/* Description */}
                 {f.featureDescription && (
                   <p style={{
                     fontFamily: "var(--font-dm-mono), monospace",
@@ -390,8 +366,6 @@ export default async function ProjectPage({ params }: Props) {
                     {f.featureDescription}
                   </p>
                 )}
-
-                {/* Media */}
                 {f.mediaType === "image" && f.imageUrl && (
                   <Image
                     src={f.imageUrl}
@@ -419,10 +393,9 @@ export default async function ProjectPage({ params }: Props) {
           </div>
         )}
 
-        {/* ── SECTION 4: BACK LINK ──────────────────────────────────────────── */}
+        {/* BACK LINK */}
         <Link
           href="/projects"
-          className="cs-back-link"
           style={{
             fontFamily:     "var(--font-dm-mono), monospace",
             fontSize:       12,
@@ -430,7 +403,6 @@ export default async function ProjectPage({ params }: Props) {
             textDecoration: "none",
             marginTop:      80,
             display:        "inline-block",
-            transition:     "color 0.15s",
           }}
         >
           ← Back to Projects
