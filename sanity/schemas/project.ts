@@ -1,6 +1,132 @@
 // Sanity project schema
 // Use this in your Sanity Studio at sanity/schemaTypes/project.ts
 
+// ── Reusable content block type ───────────────────────────────────────────────
+const contentBlock = {
+  type: "object",
+  name: "contentBlock",
+  title: "Content Block",
+  fields: [
+    {
+      name: "blockType",
+      title: "Block Type",
+      type: "string",
+      options: {
+        list: [
+          { title: "Text (heading + body)", value: "text" },
+          { title: "Image Gallery", value: "gallery" },
+          { title: "Video", value: "video" },
+          { title: "Insight / Key Points", value: "insight" },
+          { title: "Quote", value: "quote" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "text",
+    },
+    {
+      name: "heading",
+      title: "Heading",
+      type: "string",
+      description: "Optional heading above the content.",
+    },
+    {
+      name: "body",
+      title: "Body",
+      type: "text",
+      rows: 4,
+      description: "Paragraph text.",
+      hidden: ({ parent }: { parent: { blockType?: string } }) =>
+        parent?.blockType === "gallery" ||
+        parent?.blockType === "video" ||
+        parent?.blockType === "quote",
+    },
+    {
+      name: "images",
+      title: "Images",
+      type: "array",
+      description: "Upload one or more images. Multiple = gallery grid.",
+      hidden: ({ parent }: { parent: { blockType?: string } }) =>
+        parent?.blockType !== "gallery",
+      of: [
+        {
+          type: "object",
+          fields: [
+            { name: "image", title: "Image", type: "image", options: { hotspot: true } },
+            { name: "caption", title: "Caption", type: "string" },
+          ],
+          preview: { select: { title: "caption", media: "image" } },
+        },
+      ],
+    },
+    {
+      name: "videoUrl",
+      title: "Video URL",
+      type: "url",
+      description: "Direct .mp4, Loom, or YouTube URL.",
+      hidden: ({ parent }: { parent: { blockType?: string } }) =>
+        parent?.blockType !== "video",
+    },
+    {
+      name: "insightLabel",
+      title: "Insight Label",
+      type: "string",
+      description: 'e.g. "KEY GAPS", "KEY INSIGHT", "FROM RESEARCH"',
+      hidden: ({ parent }: { parent: { blockType?: string } }) =>
+        parent?.blockType !== "insight",
+    },
+    {
+      name: "insightItems",
+      title: "Insight Items",
+      type: "array",
+      description: "Each item becomes a card.",
+      hidden: ({ parent }: { parent: { blockType?: string } }) =>
+        parent?.blockType !== "insight",
+      of: [{ type: "string" }],
+    },
+    {
+      name: "quote",
+      title: "Quote",
+      type: "text",
+      rows: 3,
+      hidden: ({ parent }: { parent: { blockType?: string } }) =>
+        parent?.blockType !== "quote",
+    },
+    {
+      name: "quoteAttribution",
+      title: "Quote Attribution",
+      type: "string",
+      description: 'e.g. "— Software Engineer, user interview"',
+      hidden: ({ parent }: { parent: { blockType?: string } }) =>
+        parent?.blockType !== "quote",
+    },
+  ],
+  preview: {
+    select: {
+      blockType: "blockType",
+      heading: "heading",
+      body: "body",
+      insightLabel: "insightLabel",
+    },
+    prepare({ blockType, heading, body, insightLabel }: {
+      blockType?: string;
+      heading?: string;
+      body?: string;
+      insightLabel?: string;
+    }) {
+      const labels: Record<string, string> = {
+        text: "📝",
+        gallery: "🖼️",
+        video: "🎥",
+        insight: "💡",
+        quote: "💬",
+      };
+      const icon = labels[blockType ?? "text"] ?? "📝";
+      const title = heading || insightLabel || body?.slice(0, 60) || "Block";
+      return { title: `${icon} ${title}` };
+    },
+  },
+};
+
 export const projectType = {
   name: "project",
   title: "Project",
@@ -12,6 +138,13 @@ export const projectType = {
       title: "Display Order",
       type: "number",
       description: "Controls the order projects appear on the landing page. Lower = first.",
+    },
+
+    {
+    name: "mobileOrder",
+    title: "Mobile Display Order",
+    type: "number",
+    description: "Controls order on mobile. If empty, falls back to Display Order.",
     },
     {
       name: "client",
@@ -79,13 +212,12 @@ export const projectType = {
       title: "External Link Only",
       type: "boolean",
       initialValue: false,
-      description: "If true, this project links out to an external URL. No case study page inside the site.",
+      description: "If true, this project links out to an external URL.",
     },
     {
       name: "externalUrl",
       title: "External URL",
       type: "url",
-      description: "The external link to open when clicked.",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !document?.isExternal,
     },
     {
@@ -93,7 +225,7 @@ export const projectType = {
       title: "Case Study Live",
       type: "boolean",
       initialValue: false,
-      description: "If false, hovering shows 'Coming Soon' instead of 'View Case Study'.",
+      description: "If false, hovering shows 'Coming Soon'.",
     },
     {
       name: "showResearch",
@@ -102,6 +234,15 @@ export const projectType = {
       initialValue: false,
       description: "Turn on for academic or research-heavy projects.",
     },
+    
+    {
+      name: "showIdeation",
+      title: "Show Ideation Chapter",
+      type: "boolean",
+      initialValue: false,
+      description: "Show ideation/iteration process.",
+    },
+
     {
       name: "showProcess",
       title: "Show Process Chapter",
@@ -114,14 +255,12 @@ export const projectType = {
       title: "Show Next Steps",
       type: "boolean",
       initialValue: false,
-      description: "What you would do with more time.",
     },
     {
       name: "showLearnings",
       title: "Show Learnings",
       type: "boolean",
       initialValue: false,
-      description: "Personal reflection. Good for academic projects.",
     },
 
     // ── HEADER ────────────────────────────────────────────────
@@ -129,7 +268,7 @@ export const projectType = {
       name: "projectCategory",
       title: "Project Category",
       type: "string",
-      description: 'Short descriptor shown in header. e.g. "Dashboard & App", "Invoicing Platform"',
+      description: 'e.g. "Dashboard & App", "Invoicing Platform"',
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
     {
@@ -144,28 +283,34 @@ export const projectType = {
       title: "Tagline",
       type: "text",
       rows: 2,
-      description: "Subtext below the headline. 1–2 sentences.",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
     {
       name: "solutionLabel",
       title: "Solution Chapter Label",
       type: "string",
-      description: 'Override "Solution" e.g. "The Platform", "What We Built"',
+      description: 'Override "Solution" e.g. "The Platform"',
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
     {
       name: "processLabel",
       title: "Process Chapter Label",
       type: "string",
-      description: 'Override "Process" e.g. "How We Got There", "Design Decisions"',
+      description: 'Override "Process" e.g. "Design Decisions"',
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
     {
       name: "researchLabel",
       title: "Research Chapter Label",
       type: "string",
-      description: 'Override "Research" e.g. "Discovery", "User Research"',
+      description: 'Override "Research" e.g. "Discovery"',
+      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
+    },
+    {
+      name: "ideationLabel",
+      title: "Ideation Chapter Label",
+      type: "string",
+      description: 'Override "Ideation" e.g. "Iteration"',
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
 
@@ -181,7 +326,6 @@ export const projectType = {
       name: "role",
       title: "Role",
       type: "string",
-      description: 'e.g. "Lead Product Designer"',
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
     {
@@ -189,7 +333,7 @@ export const projectType = {
       title: "Team",
       type: "array",
       of: [{ type: "string" }],
-      description: "Team members. Leave empty for solo projects.",
+      description: "Leave empty for solo projects.",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
     {
@@ -197,7 +341,6 @@ export const projectType = {
       title: "Skills / Tags",
       type: "array",
       of: [{ type: "string" }],
-      description: "Detailed skill tags for the case study page.",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
     {
@@ -221,61 +364,40 @@ export const projectType = {
       options: { hotspot: true },
     },
 
-    // ── CASE STUDY CHAPTERS ───────────────────────────────────
+    // ── OVERVIEW BODY ─────────────────────────────────────────
     {
-      name: "hook",
-      title: "Hook / Problem",
-      type: "text",
-      rows: 3,
-      description: "Opening problem statement. 2–3 sentences.",
-      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
-    },
-    {
-      name: "context",
-      title: "Context",
+      name: "overviewBody",
+      title: "Overview Body",
       type: "text",
       rows: 4,
-      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
-    },
-    {
-      name: "challenge",
-      title: "Challenge",
-      type: "text",
-      rows: 4,
-      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
-    },
-    {
-      name: "decisions",
-      title: "Design Decisions",
-      type: "array",
-      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
-      of: [
-        {
-          type: "object",
-          fields: [
-            { name: "decisionTitle", title: "Decision Title", type: "string" },
-            { name: "decisionBody", title: "Decision Body", type: "text", rows: 4 },
-          ],
-          preview: {
-            select: { title: "decisionTitle" },
-          },
-        },
-      ],
-    },
-    {
-      name: "outcome",
-      title: "Outcome",
-      type: "text",
-      rows: 4,
+      description: "Context paragraph shown below thumbnail in Overview. e.g. 'How might we...' or project background.",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
     },
 
-    // ── FEATURES ──────────────────────────────────────────────
+    // ── PROBLEM ───────────────────────────────────────────────
+    {
+      name: "hook",
+      title: "Hook / Problem Statement",
+      type: "text",
+      rows: 3,
+      description: "Opening problem statement shown as large italic text.",
+      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
+    },
+    {
+      name: "keyGaps",
+      title: "Key Gaps",
+      type: "array",
+      description: "Bullet points shown as callout cards in the Problem section.",
+      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
+      of: [{ type: "string" }],
+    },
+
+    // ── SOLUTION / FEATURES ───────────────────────────────────
     {
       name: "features",
-      title: "Features",
+      title: "Features / Solution",
       type: "array",
-      description: "Each feature: number, headline, description, and a video or image.",
+      description: "Each feature: number, title, description, and media (image gallery or video).",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
       of: [
         {
@@ -283,125 +405,148 @@ export const projectType = {
           fields: [
             { name: "number", title: "Number", type: "string", description: 'e.g. "01"' },
             { name: "featureTitle", title: "Feature Title", type: "string" },
-            { name: "featureDescription", title: "Feature Description", type: "string", description: "One line." },
+            { name: "featureDescription", title: "Feature Description", type: "text", rows: 3 },
             {
               name: "mediaType",
               title: "Media Type",
               type: "string",
               options: {
                 list: [
-                  { title: "Image", value: "image" },
+                  { title: "Image Gallery", value: "gallery" },
                   { title: "Video (URL)", value: "video" },
+                  { title: "None", value: "none" },
                 ],
                 layout: "radio",
               },
-              initialValue: "image",
+              initialValue: "gallery",
             },
             {
-              name: "image",
-              title: "Image",
-              type: "image",
-              options: { hotspot: true },
+              name: "images",
+              title: "Images",
+              type: "array",
+              description: "Upload one or more images.",
               hidden: ({ parent }: { parent: { mediaType?: string } }) =>
-                parent?.mediaType !== "image",
+                parent?.mediaType !== "gallery",
+              of: [
+                {
+                  type: "object",
+                  fields: [
+                    { name: "image", title: "Image", type: "image", options: { hotspot: true } },
+                    { name: "caption", title: "Caption", type: "string" },
+                  ],
+                  preview: { select: { title: "caption", media: "image" } },
+                },
+              ],
             },
             {
               name: "videoUrl",
               title: "Video URL",
               type: "url",
-              description: "Direct .mp4 URL or Loom/YouTube embed URL.",
+              description: "Direct .mp4, Loom, or YouTube URL.",
               hidden: ({ parent }: { parent: { mediaType?: string } }) =>
                 parent?.mediaType !== "video",
             },
           ],
           preview: {
-            select: { title: "featureTitle", subtitle: "number", media: "image" },
+            select: { title: "featureTitle", subtitle: "number" },
           },
         },
       ],
     },
 
-    // ── RESEARCH ──────────────────────────────────────────────
+    // ── RESEARCH BLOCKS ───────────────────────────────────────
     {
-      name: "researchSummary",
-      title: "Research Summary",
+      name: "researchBlocks",
+      title: "Research Blocks",
+      type: "array",
+      description: "Add blocks of text, images, insights, quotes, or videos.",
+      hidden: ({ document }: { document: { showResearch?: boolean } }) =>
+        !document?.showResearch,
+      of: [contentBlock],
+    },
+
+    // ── IDEATION BLOCKS ───────────────────────────────────────
+    {
+      name: "ideationBlocks",
+      title: "Ideation Blocks",
+      type: "array",
+      description: "Add blocks of text, images, insights, quotes, or videos.",
+      hidden: ({ document }: { document: { showIdeation?: boolean } }) =>
+        !document?.showIdeation,
+      of: [contentBlock],
+    },
+
+    // ── PROCESS ───────────────────────────────────────────────
+    {
+      name: "context",
+      title: "Context",
       type: "text",
       rows: 4,
-      description: "Overview of research approach and key findings.",
-      hidden: ({ document }: { document: { showResearch?: boolean } }) =>
-        !document?.showResearch,
+      hidden: ({ document }: { document: { isExternal?: boolean; showProcess?: boolean } }) =>
+        !!document?.isExternal || !document?.showProcess,
     },
     {
-      name: "researchInsights",
-      title: "Research Insights",
+      name: "challenge",
+      title: "Challenge",
+      type: "text",
+      rows: 4,
+      hidden: ({ document }: { document: { isExternal?: boolean; showProcess?: boolean } }) =>
+        !!document?.isExternal || !document?.showProcess,
+    },
+    {
+      name: "decisions",
+      title: "Design Decisions",
       type: "array",
-      description: "Key insight callouts shown as cards.",
-      hidden: ({ document }: { document: { showResearch?: boolean } }) =>
-        !document?.showResearch,
+      hidden: ({ document }: { document: { isExternal?: boolean; showProcess?: boolean } }) =>
+        !!document?.isExternal || !document?.showProcess,
       of: [
         {
           type: "object",
           fields: [
-            { name: "label", title: "Label", type: "string", description: 'e.g. "KEY INSIGHT"' },
-            { name: "insight", title: "Insight", type: "text", rows: 2 },
+            { name: "decisionTitle", title: "Decision Title", type: "string" },
+            { name: "decisionBody", title: "Decision Body", type: "text", rows: 4 },
           ],
-          preview: { select: { title: "insight" } },
-        },
-      ],
-    },
-    {
-      name: "researchImages",
-      title: "Research Images",
-      type: "array",
-      hidden: ({ document }: { document: { showResearch?: boolean } }) =>
-        !document?.showResearch,
-      of: [
-        {
-          type: "object",
-          fields: [
-            { name: "image", title: "Image", type: "image", options: { hotspot: true } },
-            { name: "caption", title: "Caption", type: "string" },
-          ],
-          preview: { select: { title: "caption", media: "image" } },
+          preview: { select: { title: "decisionTitle" } },
         },
       ],
     },
 
-    // ── NEXT STEPS & LEARNINGS ────────────────────────────────
+    // ── OUTCOME BLOCKS ────────────────────────────────────────
     {
-      name: "nextSteps",
-      title: "Next Steps",
+      name: "outcome",
+      title: "Outcome (simple text)",
       type: "text",
       rows: 4,
-      description: "What you would do with more time or resources.",
+      description: "Simple text outcome. Or use Outcome Blocks below for richer content.",
+      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
+    },
+    {
+      name: "outcomeBlocks",
+      title: "Outcome Blocks",
+      type: "array",
+      description: "Optional: richer outcome with images, quotes, insights.",
+      hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
+      of: [contentBlock],
+    },
+
+    // ── NEXT STEPS BLOCKS ─────────────────────────────────────
+    {
+      name: "nextStepsBlocks",
+      title: "Next Steps Blocks",
+      type: "array",
       hidden: ({ document }: { document: { showNextSteps?: boolean } }) =>
         !document?.showNextSteps,
+      of: [contentBlock],
     },
+
+    // ── LEARNINGS BLOCKS ──────────────────────────────────────
     {
-      name: "learnings",
-      title: "What I Learned",
-      type: "text",
-      rows: 4,
-      description: "Personal reflection on the project.",
-      hidden: ({ document }: { document: { showLearnings?: boolean } }) =>
-        !document?.showLearnings,
-    },
-    {
-      name: "learningImages",
-      title: "Reflection Images",
+      name: "learningsBlocks",
+      title: "Learnings Blocks",
       type: "array",
       hidden: ({ document }: { document: { showLearnings?: boolean } }) =>
         !document?.showLearnings,
-      of: [
-        {
-          type: "object",
-          fields: [
-            { name: "image", title: "Image", type: "image", options: { hotspot: true } },
-            { name: "caption", title: "Caption", type: "string" },
-          ],
-          preview: { select: { title: "caption", media: "image" } },
-        },
-      ],
+      of: [contentBlock],
     },
 
     // ── LEGACY ────────────────────────────────────────────────
@@ -409,13 +554,13 @@ export const projectType = {
       name: "screens",
       title: "Screens (Legacy)",
       type: "array",
-      description: "Kept for backward compatibility. Use Features for new projects.",
+      description: "Kept for backward compatibility.",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
       of: [{ type: "image", options: { hotspot: true } }],
     },
     {
       name: "processImages",
-      title: "Process Images",
+      title: "Process Images (Legacy)",
       type: "array",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
       of: [
@@ -431,7 +576,7 @@ export const projectType = {
     },
     {
       name: "diagrams",
-      title: "Diagrams",
+      title: "Diagrams (Legacy)",
       type: "array",
       hidden: ({ document }: { document: { isExternal?: boolean } }) => !!document?.isExternal,
       of: [
