@@ -98,6 +98,121 @@ export const getLandingProjects = groq`
   }
 `;
 
+// ─── Full case study query (block-based schema) ───────────────────────────────
+
+export const getProjectBySlugFull = groq`
+  *[_type == "project" && slug.current == $slug][0] {
+    _id,
+    title,
+    slug,
+    nda,
+    ndaTitle,
+    projectCategory,
+    headline,
+    tagline,
+    overviewBody,
+    solutionLabel,
+    processLabel,
+    researchLabel,
+    ideationLabel,
+    year,
+    duration,
+    role,
+    team,
+    skills,
+    "thumbnailUrl": thumbnail.asset->url,
+    hook,
+    keyGaps,
+    features[] {
+      _key,
+      number,
+      featureTitle,
+      featureDescription,
+      mediaType,
+      images[] {
+        _key,
+        "imageUrl": image.asset->url,
+        caption
+      },
+      videoUrl
+    },
+    showResearch,
+    researchBlocks[] {
+      _key,
+      blockType,
+      heading,
+      body,
+      images[] { _key, "imageUrl": image.asset->url, caption },
+      videoUrl,
+      insightLabel,
+      insightItems,
+      quote,
+      quoteAttribution
+    },
+    showIdeation,
+    ideationBlocks[] {
+      _key,
+      blockType,
+      heading,
+      body,
+      images[] { _key, "imageUrl": image.asset->url, caption },
+      videoUrl,
+      insightLabel,
+      insightItems,
+      quote,
+      quoteAttribution
+    },
+    showProcess,
+    context,
+    challenge,
+    decisions[] {
+      _key,
+      decisionTitle,
+      decisionBody
+    },
+    outcome,
+    outcomeBlocks[] {
+      _key,
+      blockType,
+      heading,
+      body,
+      images[] { _key, "imageUrl": image.asset->url, caption },
+      videoUrl,
+      insightLabel,
+      insightItems,
+      quote,
+      quoteAttribution
+    },
+    showNextSteps,
+    nextStepsBlocks[] {
+      _key,
+      blockType,
+      heading,
+      body,
+      images[] { _key, "imageUrl": image.asset->url, caption },
+      videoUrl,
+      insightLabel,
+      insightItems,
+      quote,
+      quoteAttribution
+    },
+    showLearnings,
+    learningsBlocks[] {
+      _key,
+      blockType,
+      heading,
+      body,
+      images[] { _key, "imageUrl": image.asset->url, caption },
+      videoUrl,
+      insightLabel,
+      insightItems,
+      quote,
+      quoteAttribution
+    },
+    isLive
+  }
+`;
+
 // ─── B-Side / lab items ───────────────────────────────────────────────────────
 
 export const getLabItems = groq`
@@ -113,43 +228,5 @@ export const getLabItems = groq`
     status,
     tags,
     "thumbnail": thumbnail.asset->url
-  }
-`;
-
-
-export const getProjectBySlugFull = groq`
-  *[_type == "project" && slug.current == $slug][0] {
-    _id,
-    title,
-    slug,
-    nda,
-    ndaTitle,
-    projectCategory,
-    headline,
-    tagline,
-    year,
-    duration,
-    role,
-    team,
-    skills,
-    hook,
-    context,
-    challenge,
-    decisions[] {
-      _key,
-      decisionTitle,
-      decisionBody
-    },
-    outcome,
-    features[] {
-      _key,
-      number,
-      featureTitle,
-      featureDescription,
-      mediaType,
-      "imageUrl": image.asset->url,
-      videoUrl
-    },
-    isLive
   }
 `;
