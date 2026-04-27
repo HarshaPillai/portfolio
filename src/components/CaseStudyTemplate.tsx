@@ -287,7 +287,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
   const [activeChapter, setActiveChapter] = useState("overview");
   const [isMobile, setIsMobile] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [dotGap, setDotGap] = useState(20);
+  const [dotGap, setDotGap] = useState(28);
   const navRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -468,7 +468,7 @@ useEffect(() => {
                       style={{
                         display: "flex", alignItems: "center",
                         gap: 10, cursor: "pointer",
-                        marginBottom: dotGap, position: "relative",
+                        marginBottom: 28, position: "relative",
                       }}
                     >
                       <div style={{
