@@ -341,7 +341,7 @@ useEffect(() => {
       const el = document.getElementById(ch.id);
       if (!el) continue;
       const rect = el.getBoundingClientRect();
-      if (rect.top - containerTop < container.clientHeight * 0.45) {
+      if (rect.top - containerTop < container.clientHeight * 0.3) {
         activeId = ch.id;
       }
     }
@@ -454,7 +454,7 @@ useEffect(() => {
                   position: "absolute", left: 3, top: 3,
                   width: 1, height: fillH,
                   backgroundColor: "#F35900",
-                  transition: "height 0.35s ease",
+                  transition: "height 0.1s linear",
                 }} />
 
                 {chapters.map(({ id, label }, idx) => {
