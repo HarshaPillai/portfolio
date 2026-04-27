@@ -361,7 +361,8 @@ useEffect(() => {
       const progress = Math.max(0, Math.min(1, -activeTop / chapterHeight));
       setScrollProgress((activeIndex + progress) / (chapters.length - 1));
     } else {
-      setScrollProgress(activeIndex / Math.max(1, chapters.length - 1));
+      // Last chapter — fill to 100%
+      setScrollProgress(1);
     }
   };
 

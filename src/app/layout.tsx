@@ -4,10 +4,12 @@ import Sidebar from "@/components/Sidebar";
 import SocialIcons from "@/components/SocialIcons";
 import PageTransition from "@/components/PageTransition";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "Harsha Pillai",
-  description:
-    "I design SaaS products that feel inevitable. I build with AI to get there faster.",
+  description: "Product Designer & Design Strategist based in Chicago, Illinois.",
+  icons: {
+    icon: '/images/flavicon.png',
+  },
 };
 
 export default function RootLayout({
