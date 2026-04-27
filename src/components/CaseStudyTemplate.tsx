@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,9 +73,18 @@ type CaseStudyProject = {
   learningsBlocks?: ContentBlock[];
 };
 
+const toHiRes = (url: string) =>
+  url.replace(/\?.*$/, "") + "?w=3200&auto=format&q=95";
+
 // ─── ContentBlocks renderer ───────────────────────────────────────────────────
 
-function ContentBlocks({ blocks }: { blocks?: ContentBlock[] }) {
+function ContentBlocks({
+  blocks,
+  onImageClick,
+}: {
+  blocks?: ContentBlock[];
+  onImageClick: (src: string) => void;
+}) {
   if (!blocks || blocks.length === 0) return null;
 
   return (
@@ -120,14 +128,12 @@ function ContentBlocks({ blocks }: { blocks?: ContentBlock[] }) {
               }}>
                 {block.images.map((img, idx) => img.imageUrl && (
                   <figure key={img._key || idx} style={{ margin: 0 }}>
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={img.imageUrl}
                       alt={img.caption || ""}
-                      width={800}
-                      height={500}
-                      quality={90}
-                      style={{ width: "100%", height: "auto", borderRadius: 8, display: "block" }}
-                      sizes="(max-width: 768px) 100vw, 400px"
+                      onClick={() => onImageClick(toHiRes(img.imageUrl!))}
+                      style={{ width: "100%", height: "auto", borderRadius: 8, display: "block", cursor: "zoom-in" }}
                     />
                     {img.caption && (
                       <figcaption style={{
@@ -280,12 +286,21 @@ function FeatureVideo({ url }: { url: string }) {
 export default function CaseStudyTemplate({ project }: { project: CaseStudyProject }) {
   const [activeChapter, setActiveChapter] = useState("overview");
   const [isMobile, setIsMobile] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxSrc(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const displayTitle = project.nda && project.ndaTitle ? project.ndaTitle : project.title;
@@ -532,15 +547,12 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
 
           {/* Thumbnail */}
           {project.thumbnailUrl && (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={project.thumbnailUrl}
               alt={project.title}
-              width={860}
-              height={540}
-              style={{ width: "100%", height: "auto", borderRadius: 8, display: "block", marginBottom: 32 }}
-              sizes="(max-width: 768px) 100vw, 860px"
-              quality={90}
-              priority
+              onClick={() => setLightboxSrc(toHiRes(project.thumbnailUrl!))}
+              style={{ width: "100%", height: "auto", borderRadius: 8, display: "block", marginBottom: 32, cursor: "zoom-in" }}
             />
           )}
 
@@ -623,13 +635,12 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
                     }}>
                       {f.images.map((img, idx) => img.imageUrl && (
                         <figure key={img._key || idx} style={{ margin: 0 }}>
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             src={img.imageUrl}
                             alt={img.caption || f.featureTitle || ""}
-                            width={800} height={500}
-                            quality={90}
-                            style={{ width: "100%", height: "auto", borderRadius: 8, display: "block" }}
-                            sizes="(max-width: 768px) 100vw, 400px"
+                            onClick={() => setLightboxSrc(toHiRes(img.imageUrl!))}
+                            style={{ width: "100%", height: "auto", borderRadius: 8, display: "block", cursor: "zoom-in" }}
                           />
                           {img.caption && (
                             <figcaption style={{
@@ -655,7 +666,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
         {project.showResearch && project.researchBlocks && project.researchBlocks.length > 0 && (
           <div id="research" style={{ marginBottom: 72 }}>
             <span style={chapterLabel}>{project.researchLabel || "Research"}</span>
-            <ContentBlocks blocks={project.researchBlocks} />
+            <ContentBlocks blocks={project.researchBlocks} onImageClick={setLightboxSrc} />
           </div>
         )}
 
@@ -663,7 +674,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
         {project.showIdeation && project.ideationBlocks && project.ideationBlocks.length > 0 && (
           <div id="ideation" style={{ marginBottom: 72 }}>
             <span style={chapterLabel}>{project.ideationLabel || "Ideation"}</span>
-            <ContentBlocks blocks={project.ideationBlocks} />
+            <ContentBlocks blocks={project.ideationBlocks} onImageClick={setLightboxSrc} />
           </div>
         )}
 
@@ -698,7 +709,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
           <div id="outcome" style={{ marginBottom: 72 }}>
             <span style={chapterLabel}>Outcome</span>
             {project.outcomeBlocks && project.outcomeBlocks.length > 0
-              ? <ContentBlocks blocks={project.outcomeBlocks} />
+              ? <ContentBlocks blocks={project.outcomeBlocks} onImageClick={setLightboxSrc} />
               : <p style={bodyText}>{project.outcome}</p>
             }
           </div>
@@ -708,7 +719,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
         {project.showNextSteps && project.nextStepsBlocks && project.nextStepsBlocks.length > 0 && (
           <div id="next" style={{ marginBottom: 72 }}>
             <span style={chapterLabel}>Next Steps</span>
-            <ContentBlocks blocks={project.nextStepsBlocks} />
+            <ContentBlocks blocks={project.nextStepsBlocks} onImageClick={setLightboxSrc} />
           </div>
         )}
 
@@ -716,7 +727,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
         {project.showLearnings && project.learningsBlocks && project.learningsBlocks.length > 0 && (
           <div id="learned" style={{ marginBottom: 72 }}>
             <span style={chapterLabel}>What I Learned</span>
-            <ContentBlocks blocks={project.learningsBlocks} />
+            <ContentBlocks blocks={project.learningsBlocks} onImageClick={setLightboxSrc} />
           </div>
         )}
 
@@ -732,6 +743,51 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
           onMouseLeave={e => (e.currentTarget.style.color = "rgba(58,58,58,0.5)")}
         >← Back to Projects</Link>
       </div>
+
+      {/* ── LIGHTBOX ───────────────────────────────────────────────────────── */}
+      {lightboxSrc && (
+        <div
+          onClick={() => setLightboxSrc(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9998,
+            backgroundColor: "rgba(0,0,0,0.92)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "zoom-out",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxSrc}
+            alt=""
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: 4,
+            }}
+          />
+          <button
+            onClick={() => setLightboxSrc(null)}
+            style={{
+              position: "absolute",
+              top: 24,
+              right: 32,
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.6)",
+              fontSize: 28,
+              cursor: "pointer",
+              fontFamily: "var(--font-dm-mono), monospace",
+              lineHeight: 1,
+            }}
+          >×</button>
+        </div>
+      )}
     </div>
   );
 }
