@@ -398,42 +398,60 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
             onMouseLeave={e => (e.currentTarget.style.color = "rgba(58,58,58,0.5)")}
           >← Projects</Link>
 
-          <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
-            {/* Connecting line */}
-            <div style={{
-              position: "absolute", left: 3, top: 6,
-              width: 1, height: "calc(100% - 12px)",
-              backgroundColor: "rgba(0,0,0,0.08)",
-            }} />
+          {(() => {
+            const DOT_GAP = 20;
+            const activeIndex = chapters.findIndex(c => c.id === activeChapter);
+            const totalLineH = (chapters.length - 1) * DOT_GAP;
+            const fillH = chapters.length > 1
+              ? (activeIndex / (chapters.length - 1)) * totalLineH
+              : 0;
+            return (
+              <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
+                {/* Base gray line */}
+                <div style={{
+                  position: "absolute", left: 3, top: 3,
+                  width: 1, height: totalLineH,
+                  backgroundColor: "rgba(0,0,0,0.08)",
+                }} />
+                {/* Orange progress fill */}
+                <div style={{
+                  position: "absolute", left: 3, top: 3,
+                  width: 1, height: fillH,
+                  backgroundColor: "#F35900",
+                  transition: "height 0.35s ease",
+                }} />
 
-            {chapters.map(({ id, label }) => {
-              const isActive = activeChapter === id;
-              return (
-                <div
-                  key={id}
-                  onClick={() => scrollTo(id)}
-                  style={{
-                    display: "flex", alignItems: "center",
-                    gap: 10, cursor: "pointer",
-                    marginBottom: 20, position: "relative",
-                  }}
-                >
-                  <div style={{
-                    width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-                    backgroundColor: isActive ? "#F35900" : "transparent",
-                    border: isActive ? "none" : "1.5px solid rgba(0,0,0,0.2)",
-                    transition: "all 0.2s",
-                  }} />
-                  <span style={{
-                    fontFamily: "var(--font-dm-mono), monospace",
-                    fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em",
-                    color: isActive ? "#F35900" : "rgba(58,58,58,0.4)",
-                    transition: "color 0.2s",
-                  }}>{label}</span>
-                </div>
-              );
-            })}
-          </div>
+                {chapters.map(({ id, label }, idx) => {
+                  const isActive = activeChapter === id;
+                  const isDone = idx < activeIndex;
+                  return (
+                    <div
+                      key={id}
+                      onClick={() => scrollTo(id)}
+                      style={{
+                        display: "flex", alignItems: "center",
+                        gap: 10, cursor: "pointer",
+                        marginBottom: DOT_GAP, position: "relative",
+                      }}
+                    >
+                      <div style={{
+                        width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+                        backgroundColor: (isActive || isDone) ? "#F35900" : "transparent",
+                        border: (isActive || isDone) ? "none" : "1.5px solid rgba(0,0,0,0.2)",
+                        transition: "all 0.2s",
+                      }} />
+                      <span style={{
+                        fontFamily: "var(--font-dm-mono), monospace",
+                        fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em",
+                        color: isActive ? "#F35900" : isDone ? "rgba(243,89,0,0.5)" : "rgba(58,58,58,0.4)",
+                        transition: "color 0.2s",
+                      }}>{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
