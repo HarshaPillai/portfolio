@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type P = { x: number; y: number; age: number };
 type S = { x: number; y: number; vx: number; vy: number;
@@ -24,6 +25,9 @@ function mkStar(w: number, h: number): S {
 
 export default function StarCursor() {
   const ref = useRef<HTMLCanvasElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) return;
@@ -118,9 +122,10 @@ export default function StarCursor() {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [mounted]);
 
-  return (
+  if (!mounted) return null;
+  return createPortal(
     <canvas
       ref={ref}
       style={{
@@ -130,6 +135,7 @@ export default function StarCursor() {
         pointerEvents: "none",
         zIndex: 9999,
       }}
-    />
+    />,
+    document.body
   );
 }
