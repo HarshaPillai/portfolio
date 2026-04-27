@@ -289,6 +289,8 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [dotGap, setDotGap] = useState(20);
   const navRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -327,22 +329,45 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
       list.push({ id: "learned", label: "Learnings" });
     return list;
   }, [project]);
+useEffect(() => {
+  const container = scrollContainerRef.current;
+  if (!container) return;
 
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-    chapters.forEach(({ id }) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveChapter(id); },
-        { threshold: 0.3 },
-      );
-      obs.observe(el);
-      observers.push(obs);
-    });
-    return () => observers.forEach((obs) => obs.disconnect());
-  }, [chapters]);
+  const onScroll = () => {
+    const containerTop = container.getBoundingClientRect().top;
+    let activeId = chapters[0]?.id ?? "overview";
 
+    for (const ch of chapters) {
+      const el = document.getElementById(ch.id);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.top - containerTop < container.clientHeight * 0.45) {
+        activeId = ch.id;
+      }
+    }
+    setActiveChapter(activeId);
+
+    const activeIndex = chapters.findIndex(c => c.id === activeId);
+    const activeEl = document.getElementById(activeId);
+    const nextIdx = activeIndex + 1;
+    const nextEl = nextIdx < chapters.length
+      ? document.getElementById(chapters[nextIdx].id)
+      : null;
+
+    if (activeEl && nextEl) {
+      const activeTop = activeEl.getBoundingClientRect().top - containerTop;
+      const nextTop = nextEl.getBoundingClientRect().top - containerTop;
+      const chapterHeight = nextTop - activeTop;
+      const progress = Math.max(0, Math.min(1, -activeTop / chapterHeight));
+      setScrollProgress((activeIndex + progress) / (chapters.length - 1));
+    } else {
+      setScrollProgress(activeIndex / Math.max(1, chapters.length - 1));
+    }
+  };
+
+  container.addEventListener("scroll", onScroll, { passive: true });
+  return () => container.removeEventListener("scroll", onScroll);
+}, [chapters]);
   useEffect(() => {
     if (!navRef.current) return;
     const items = navRef.current.querySelectorAll<HTMLElement>("[data-chapter-item]");
@@ -380,7 +405,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
   };
 
   return (
-    <div style={{
+    <div ref={scrollContainerRef} style={{
       position: "fixed", inset: 0, zIndex: 50,
       backgroundColor: "#FFFFFF",
       overflowY: "auto",
@@ -413,7 +438,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
             const activeIndex = chapters.findIndex(c => c.id === activeChapter);
             const totalLineH = (chapters.length - 1) * dotGap;
             const fillH = chapters.length > 1
-              ? (activeIndex / (chapters.length - 1)) * totalLineH
+              ? scrollProgress * totalLineH
               : 0;
             return (
               <div ref={navRef} style={{ position: "relative", display: "flex", flexDirection: "column" }}>
