@@ -210,6 +210,10 @@ export default function Sidebar() {
   const [exitTarget,   setExitTarget]   = useState<string | null>(null);
   const [menuOpen,     setMenuOpen]     = useState(false);
 
+  if (pathname.startsWith("/projects/") && pathname !== "/projects") {
+    return null;
+  }
+
   const isDark = pathname.startsWith("/b-side");
 
   const isActive = (href: string) =>

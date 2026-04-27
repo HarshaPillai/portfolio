@@ -125,6 +125,7 @@ function ContentBlocks({ blocks }: { blocks?: ContentBlock[] }) {
                       alt={img.caption || ""}
                       width={800}
                       height={500}
+                      quality={90}
                       style={{ width: "100%", height: "auto", borderRadius: 8, display: "block" }}
                       sizes="(max-width: 768px) 100vw, 400px"
                     />
@@ -372,7 +373,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
           overflowY: "auto",
         }}>
           <Link
-            href="/projects"
+            href="/"
             style={{
               fontFamily: "var(--font-dm-mono), monospace",
               fontSize: 11, color: "rgba(58,58,58,0.5)",
@@ -431,7 +432,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
           display: "flex", alignItems: "center",
           overflowX: "auto", padding: "0 16px",
         }}>
-          <Link href="/projects" style={{
+          <Link href="/" style={{
             fontFamily: "var(--font-dm-mono), monospace",
             fontSize: 10, color: "rgba(58,58,58,0.5)",
             textDecoration: "none", whiteSpace: "nowrap",
@@ -538,6 +539,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
               height={540}
               style={{ width: "100%", height: "auto", borderRadius: 8, display: "block", marginBottom: 32 }}
               sizes="(max-width: 768px) 100vw, 860px"
+              quality={90}
               priority
             />
           )}
@@ -625,6 +627,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
                             src={img.imageUrl}
                             alt={img.caption || f.featureTitle || ""}
                             width={800} height={500}
+                            quality={90}
                             style={{ width: "100%", height: "auto", borderRadius: 8, display: "block" }}
                             sizes="(max-width: 768px) 100vw, 400px"
                           />
@@ -719,7 +722,7 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
 
         {/* BACK LINK */}
         <Link
-          href="/projects"
+          href="/"
           style={{
             fontFamily: "var(--font-dm-mono), monospace",
             fontSize: 12, color: "rgba(58,58,58,0.5)",
