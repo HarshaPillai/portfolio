@@ -231,12 +231,10 @@ export default function Sidebar() {
     if (target) router.push(target);
   }, [exitTarget, router]);
 
-  if (pathname.startsWith("/projects/") && pathname !== "/projects") {
-    return null;
-  }
+  const isProjectPage = pathname.startsWith("/projects/") && pathname !== "/projects";
 
   return (
-    <>
+    <div style={{ display: isProjectPage ? "none" : "contents" }}>
       {/* Exit animation — portalled via BsideLoader */}
       {exitTarget && (
         <BsideLoader direction="exit" onComplete={handleExitComplete} />
@@ -380,6 +378,6 @@ export default function Sidebar() {
         onClose={() => setMenuOpen(false)}
         pathname={pathname}
       />
-    </>
+    </div>
   );
 }

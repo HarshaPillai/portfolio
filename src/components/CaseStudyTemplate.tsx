@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -287,6 +287,8 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
   const [activeChapter, setActiveChapter] = useState("overview");
   const [isMobile, setIsMobile] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [dotGap, setDotGap] = useState(20);
+  const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -339,6 +341,15 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
       observers.push(obs);
     });
     return () => observers.forEach((obs) => obs.disconnect());
+  }, [chapters]);
+
+  useEffect(() => {
+    if (!navRef.current) return;
+    const items = navRef.current.querySelectorAll<HTMLElement>("[data-chapter-item]");
+    if (items.length < 2) return;
+    const first = items[0].getBoundingClientRect();
+    const second = items[1].getBoundingClientRect();
+    setDotGap(second.top - first.top);
   }, [chapters]);
 
   const scrollTo = (id: string) =>
@@ -399,14 +410,13 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
           >← Projects</Link>
 
           {(() => {
-            const DOT_GAP = 20;
             const activeIndex = chapters.findIndex(c => c.id === activeChapter);
-            const totalLineH = (chapters.length - 1) * DOT_GAP;
+            const totalLineH = (chapters.length - 1) * dotGap;
             const fillH = chapters.length > 1
               ? (activeIndex / (chapters.length - 1)) * totalLineH
               : 0;
             return (
-              <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
+              <div ref={navRef} style={{ position: "relative", display: "flex", flexDirection: "column" }}>
                 {/* Base gray line */}
                 <div style={{
                   position: "absolute", left: 3, top: 3,
@@ -427,11 +437,12 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
                   return (
                     <div
                       key={id}
+                      data-chapter-item
                       onClick={() => scrollTo(id)}
                       style={{
                         display: "flex", alignItems: "center",
                         gap: 10, cursor: "pointer",
-                        marginBottom: DOT_GAP, position: "relative",
+                        marginBottom: dotGap, position: "relative",
                       }}
                     >
                       <div style={{
