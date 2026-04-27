@@ -5,7 +5,6 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import BsideLoader from "@/components/BsideLoader";
 
-const BsideGradient = dynamic(() => import("@/components/BsideGradient"), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -366,11 +365,6 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
       {!loaded && (
         <BsideLoader direction="enter" onComplete={() => setLoaded(true)} />
       )}
-
-      {/* ShaderGradient — keep but reduce opacity to blend with night sky */}
-      <div style={{ opacity: loaded ? 0.18 : 0, transition: "opacity 0.5s ease" }}>
-        <BsideGradient />
-      </div>
 
       {/* Page content */}
       <div
