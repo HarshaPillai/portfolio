@@ -248,7 +248,7 @@ export default function Sidebar() {
           height: "100%",
           width: "var(--sidebar-width)",
           zIndex: 50,
-          backgroundColor: isDark ? "transparent" : "#FFFFFF",
+          backgroundColor: "transparent",
           borderRight: "none",
           transition: "background-color 0.3s, border-color 0.3s",
         }}
