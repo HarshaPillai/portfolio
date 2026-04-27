@@ -316,9 +316,14 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
   const [activeTag, setActiveTag]       = useState<string>("All");
 
   useEffect(() => {
-    const prev = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = "#0a0f1e";
-    return () => { document.body.style.backgroundColor = prev; };
+    const prevBg  = document.body.style.background;
+    const prevAtt = document.body.style.backgroundAttachment;
+    document.body.style.background           = "linear-gradient(to bottom, #050a18 0%, #0a1628 60%, #0d1f3c 100%)";
+    document.body.style.backgroundAttachment = "fixed";
+    return () => {
+      document.body.style.background           = prevBg;
+      document.body.style.backgroundAttachment = prevAtt;
+    };
   }, []);
 
   // Collect unique tags from all items
@@ -346,10 +351,8 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #0a0f1e 0%, #0d1830 100%)",
         position: "relative",
         overflowY: "auto",
-        contain: "layout",
       }}
     >
       <StarCursor />

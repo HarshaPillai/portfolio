@@ -12,7 +12,7 @@ type ShootingStar = {
   length: number;
   opacity: number;
   maxOpacity: number;
-  life: number;       // 0→1
+  life: number;
   speed: number;
 };
 
@@ -39,7 +39,6 @@ export default function StarCursor() {
   const trailRef  = useRef<TrailPoint[]>([]);
   const starsRef  = useRef<ShootingStar[]>([]);
   const rafRef    = useRef<number | null>(null);
-  const mouseRef  = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) return;
@@ -56,17 +55,15 @@ export default function StarCursor() {
     resize();
     window.addEventListener("resize", resize);
 
-    // Seed initial shooting stars
     for (let i = 0; i < 4; i++) {
       const s = newShootingStar(canvas.width, canvas.height);
-      s.life = Math.random(); // stagger
+      s.life = Math.random();
       starsRef.current.push(s);
     }
 
     const onMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
       trailRef.current.push({ x: e.clientX, y: e.clientY });
-      if (trailRef.current.length > 50) trailRef.current.shift();
+      if (trailRef.current.length > 80) trailRef.current.shift();
     };
     window.addEventListener("mousemove", onMouseMove);
 
@@ -82,7 +79,6 @@ export default function StarCursor() {
         s.x += s.vx;
         s.y += s.vy;
 
-        // Fade in/out over the lifetime
         const fade = s.life < 0.2
           ? s.life / 0.2
           : s.life > 0.8
@@ -93,10 +89,10 @@ export default function StarCursor() {
         if (s.opacity > 0) {
           ctx.save();
           ctx.globalAlpha = s.opacity;
-          ctx.strokeStyle = "rgba(255, 240, 180, 1)";
+          ctx.strokeStyle = "rgba(255, 235, 150, 1)";
           ctx.lineWidth = 1;
           ctx.shadowBlur = 6;
-          ctx.shadowColor = "rgba(255, 220, 120, 0.6)";
+          ctx.shadowColor = "rgba(255, 200, 80, 0.6)";
           ctx.beginPath();
           ctx.moveTo(s.x, s.y);
           ctx.lineTo(s.x - s.vx * s.length, s.y - s.vy * s.length);
@@ -104,34 +100,29 @@ export default function StarCursor() {
           ctx.restore();
         }
 
-        if (s.life < 1) {
-          updated.push(s);
-        } else {
-          updated.push(newShootingStar(w, h));
-        }
+        updated.push(s.life < 1 ? s : newShootingStar(w, h));
       }
       starsRef.current = updated;
 
-      // ── Cursor trail ──────────────────────────────────────────────────────
+      // ── Cursor trail — oldest→newest: radius 0.3→4px, opacity 0→1, blur 0→20 ──
       const trail = trailRef.current;
       if (trail.length > 1) {
-        ctx.save();
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = "rgba(255, 220, 120, 0.8)";
-
+        const last = trail.length - 1;
         for (let i = 0; i < trail.length; i++) {
-          const t = i / (trail.length - 1);              // 0 = oldest, 1 = newest
-          const eased = t * t;
-          const opacity = eased;
-          const radius  = 0.5 + eased * 2.5;            // 0.5px → 3px
+          const t      = i / last;
+          const radius = 0.3 + t * 3.7;
+          const blur   = t * 20;
 
-          ctx.globalAlpha = opacity;
-          ctx.fillStyle = `rgba(255, 240, 180, 1)`;
+          ctx.save();
+          ctx.globalAlpha = t;
+          ctx.shadowBlur  = blur;
+          ctx.shadowColor = "rgba(255, 200, 80, 0.9)";
+          ctx.fillStyle   = "rgba(255, 235, 150, 1)";
           ctx.beginPath();
-          ctx.arc(trail[i].x, trail[i].y, radius, 0, Math.PI * 2);
+          ctx.arc(trail[i].x, trail[i].y, Math.max(0.1, radius), 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
         }
-        ctx.restore();
       }
 
       rafRef.current = requestAnimationFrame(draw);

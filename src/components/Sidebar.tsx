@@ -249,7 +249,7 @@ export default function Sidebar() {
           width: "var(--sidebar-width)",
           zIndex: 50,
           backgroundColor: isDark ? "transparent" : "#FFFFFF",
-          borderRight: isDark ? "1px solid rgba(255,255,255,0.06)" : "none",
+          borderRight: "none",
           transition: "background-color 0.3s, border-color 0.3s",
         }}
       >
