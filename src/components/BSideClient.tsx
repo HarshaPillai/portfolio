@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import BsideLoader from "@/components/BsideLoader";
 
 const BsideGradient = dynamic(() => import("@/components/BsideGradient"), { ssr: false });
-const StarCursor = dynamic(() => import("@/components/StarCursor"), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -360,7 +359,6 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
         overflowY: "auto",
       }}
     >
-      <StarCursor />
       {/* Star field */}
       <StarField />
 
