@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import SocialIcons from "@/components/SocialIcons";
+import PageTransition from "@/components/PageTransition";
 
 export const metadata: Metadata = {
   title: "Harsha Pillai",
@@ -39,7 +40,9 @@ export default function RootLayout({
 
         <SocialIcons />
 
-        <div className="app-content" style={{ marginLeft: "var(--sidebar-width)" }}>{children}</div>
+        <div className="app-content" style={{ marginLeft: "var(--sidebar-width)" }}>
+          <PageTransition>{children}</PageTransition>
+        </div>
       </body>
     </html>
   );

@@ -63,6 +63,16 @@
 /* ─── Case study mobile chapter nav: hide scrollbar ─────────────────────────── */
 .cs-mobile-nav::-webkit-scrollbar { display: none; }
 
+/* ─── Page transition ────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-transition {
+  animation: fadeIn 0.3s ease forwards;
+}
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;

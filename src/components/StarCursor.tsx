@@ -2,24 +2,44 @@
 
 import { useEffect, useRef } from "react";
 
-type Particle = {
+type TrailPoint = { x: number; y: number };
+
+type ShootingStar = {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  size: number;
-  maxSize: number;
+  length: number;
   opacity: number;
-  age: number;
-  lifetime: number;
-  twinkleOffset: number;
+  maxOpacity: number;
+  life: number;       // 0→1
+  speed: number;
 };
+
+function newShootingStar(w: number, h: number): ShootingStar {
+  const fromRight = Math.random() > 0.5;
+  const angle = (Math.PI / 4) + (Math.random() - 0.5) * 0.4;
+  const speed = 1.2 + Math.random() * 1.8;
+  const vx = fromRight ? -Math.cos(angle) * speed : Math.cos(angle) * speed;
+  const vy = Math.sin(angle) * speed;
+  const x = fromRight ? w + 20 : -20;
+  const y = Math.random() * h * 0.6;
+  return {
+    x, y, vx, vy,
+    length: 80 + Math.random() * 70,
+    opacity: 0,
+    maxOpacity: 0.15 + Math.random() * 0.15,
+    life: 0,
+    speed,
+  };
+}
 
 export default function StarCursor() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particles = useRef<Particle[]>([]);
-  const rafRef = useRef<number | null>(null);
-  const lastTime = useRef<number>(0);
+  const trailRef  = useRef<TrailPoint[]>([]);
+  const starsRef  = useRef<ShootingStar[]>([]);
+  const rafRef    = useRef<number | null>(null);
+  const mouseRef  = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) return;
@@ -30,73 +50,87 @@ export default function StarCursor() {
     if (!ctx) return;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
+      canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
     };
     resize();
     window.addEventListener("resize", resize);
 
+    // Seed initial shooting stars
+    for (let i = 0; i < 4; i++) {
+      const s = newShootingStar(canvas.width, canvas.height);
+      s.life = Math.random(); // stagger
+      starsRef.current.push(s);
+    }
+
     const onMouseMove = (e: MouseEvent) => {
-      const count = 3 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 0.4 + Math.random() * 1.2;
-        const maxSize = 2 + Math.random() * 6;
-        particles.current.push({
-          x: e.clientX + (Math.random() - 0.5) * 6,
-          y: e.clientY + (Math.random() - 0.5) * 6,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 0.6,
-          size: maxSize,
-          maxSize,
-          opacity: 1,
-          age: 0,
-          lifetime: 600 + Math.random() * 400,
-          twinkleOffset: Math.random() * Math.PI * 2,
-        });
-      }
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+      trailRef.current.push({ x: e.clientX, y: e.clientY });
+      if (trailRef.current.length > 50) trailRef.current.shift();
     };
     window.addEventListener("mousemove", onMouseMove);
 
-    const draw = (timestamp: number) => {
-      const delta = timestamp - lastTime.current;
-      lastTime.current = timestamp;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const draw = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
 
-      particles.current = particles.current.filter(p => p.age < p.lifetime);
+      // ── Shooting stars ────────────────────────────────────────────────────
+      const updated: ShootingStar[] = [];
+      for (const s of starsRef.current) {
+        s.life += s.speed * 0.0015;
+        s.x += s.vx;
+        s.y += s.vy;
 
-      for (const p of particles.current) {
-        p.age += delta;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.015;
+        // Fade in/out over the lifetime
+        const fade = s.life < 0.2
+          ? s.life / 0.2
+          : s.life > 0.8
+          ? 1 - (s.life - 0.8) / 0.2
+          : 1;
+        s.opacity = s.maxOpacity * fade;
 
-        const progress = p.age / p.lifetime;
-        p.opacity = 1 - progress;
-        const twinkle = 0.85 + 0.15 * Math.sin(p.age * 0.015 + p.twinkleOffset);
-        p.size = p.maxSize * (1 - progress) * twinkle;
-
-        if (p.size <= 0 || p.opacity <= 0) continue;
-
-        ctx.save();
-        ctx.globalAlpha = p.opacity;
-        ctx.fillStyle = "#AA8558";
-        ctx.translate(p.x, p.y);
-
-        const r = p.size / 2;
-        const inner = r * 0.4;
-        ctx.beginPath();
-        for (let i = 0; i < 8; i++) {
-          const angle = (i * Math.PI) / 4;
-          const radius = i % 2 === 0 ? r : inner;
-          if (i === 0) {
-            ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
-          } else {
-            ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
-          }
+        if (s.opacity > 0) {
+          ctx.save();
+          ctx.globalAlpha = s.opacity;
+          ctx.strokeStyle = "rgba(255, 240, 180, 1)";
+          ctx.lineWidth = 1;
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = "rgba(255, 220, 120, 0.6)";
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(s.x - s.vx * s.length, s.y - s.vy * s.length);
+          ctx.stroke();
+          ctx.restore();
         }
-        ctx.closePath();
-        ctx.fill();
+
+        if (s.life < 1) {
+          updated.push(s);
+        } else {
+          updated.push(newShootingStar(w, h));
+        }
+      }
+      starsRef.current = updated;
+
+      // ── Cursor trail ──────────────────────────────────────────────────────
+      const trail = trailRef.current;
+      if (trail.length > 1) {
+        ctx.save();
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = "rgba(255, 220, 120, 0.8)";
+
+        for (let i = 0; i < trail.length; i++) {
+          const t = i / (trail.length - 1);              // 0 = oldest, 1 = newest
+          const eased = t * t;
+          const opacity = eased;
+          const radius  = 0.5 + eased * 2.5;            // 0.5px → 3px
+
+          ctx.globalAlpha = opacity;
+          ctx.fillStyle = `rgba(255, 240, 180, 1)`;
+          ctx.beginPath();
+          ctx.arc(trail[i].x, trail[i].y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.restore();
       }
 
