@@ -1,5 +1,6 @@
 import { client } from "@/lib/sanity";
 import BSideClient, { type LabItem } from "@/components/BSideClient";
+import BsideStarWrapper from "@/components/BsideStarWrapper";
 
 const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
   _id,
@@ -17,5 +18,10 @@ const QUERY = `*[_type == "labItem"] | order(_createdAt desc) {
 
 export default async function BSidePage() {
   const labs = await client.fetch<LabItem[]>(QUERY);
-  return <BSideClient labs={labs} />;
+  return (
+    <>
+      <BsideStarWrapper />
+      <BSideClient labs={labs} />
+    </>
+  );
 }
