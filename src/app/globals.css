@@ -57,6 +57,13 @@
   .cs-meta-grid        { grid-template-columns: 1fr !important; }
 }
 
+/* ─── B-Side: transparent sidebar ───────────────────────────────────────────── */
+.bside-page .app-sidebar {
+  background: transparent !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
 /* ─── Case study back link hover ────────────────────────────────────────────── */
 .cs-back-link:hover { color: #F35900 !important; }
 

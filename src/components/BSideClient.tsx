@@ -316,6 +316,11 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
   const [activeTag, setActiveTag]       = useState<string>("All");
 
   useEffect(() => {
+    document.body.classList.add("bside-page");
+    return () => document.body.classList.remove("bside-page");
+  }, []);
+
+  useEffect(() => {
     const prevBg  = document.body.style.background;
     const prevAtt = document.body.style.backgroundAttachment;
     document.body.style.background           = "linear-gradient(to bottom, #050a18 0%, #0a1628 60%, #0d1f3c 100%)";

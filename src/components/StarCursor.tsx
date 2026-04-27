@@ -2,48 +2,32 @@
 
 import { useEffect, useRef } from "react";
 
-type TrailPoint = { x: number; y: number };
+type P = { x: number; y: number; age: number };
+type S = { x: number; y: number; vx: number; vy: number;
+           length: number; life: number; maxOpacity: number; speed: number };
 
-type ShootingStar = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  length: number;
-  opacity: number;
-  maxOpacity: number;
-  life: number;
-  speed: number;
-};
-
-function newShootingStar(w: number, h: number): ShootingStar {
-  const fromRight = Math.random() > 0.5;
-  const angle = (Math.PI / 4) + (Math.random() - 0.5) * 0.4;
-  const speed = 1.2 + Math.random() * 1.8;
-  const vx = fromRight ? -Math.cos(angle) * speed : Math.cos(angle) * speed;
-  const vy = Math.sin(angle) * speed;
-  const x = fromRight ? w + 20 : -20;
-  const y = Math.random() * h * 0.6;
+function mkStar(w: number, h: number): S {
+  const r = Math.random() > 0.5;
+  const a = Math.PI / 4 + (Math.random() - 0.5) * 0.4;
+  const sp = 1.5 + Math.random() * 2;
   return {
-    x, y, vx, vy,
+    x: r ? w + 20 : -20,
+    y: Math.random() * h * 0.7,
+    vx: r ? -Math.cos(a) * sp : Math.cos(a) * sp,
+    vy: Math.sin(a) * sp,
     length: 80 + Math.random() * 70,
-    opacity: 0,
-    maxOpacity: 0.15 + Math.random() * 0.15,
-    life: 0,
-    speed,
+    life: Math.random(),
+    maxOpacity: 0.12 + Math.random() * 0.15,
+    speed: sp,
   };
 }
 
 export default function StarCursor() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const trailRef  = useRef<TrailPoint[]>([]);
-  const starsRef  = useRef<ShootingStar[]>([]);
-  const rafRef    = useRef<number | null>(null);
+  const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) return;
-
-    const canvas = canvasRef.current;
+    const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -51,101 +35,98 @@ export default function StarCursor() {
     const resize = () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
+      canvas.style.width  = window.innerWidth  + "px";
+      canvas.style.height = window.innerHeight + "px";
     };
     resize();
     window.addEventListener("resize", resize);
 
-    for (let i = 0; i < 4; i++) {
-      const s = newShootingStar(canvas.width, canvas.height);
-      s.life = Math.random();
-      starsRef.current.push(s);
-    }
+    const trail: P[] = [];
+    const stars: S[] = Array.from({ length: 4 }, () =>
+      mkStar(canvas.width, canvas.height)
+    );
 
-    const onMouseMove = (e: MouseEvent) => {
-      trailRef.current.push({ x: e.clientX, y: e.clientY });
-      if (trailRef.current.length > 80) trailRef.current.shift();
+    const onMove = (e: MouseEvent) => {
+      trail.push({ x: e.clientX, y: e.clientY, age: 0 });
+      if (trail.length > 60) trail.shift();
     };
-    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mousemove", onMove);
 
+    const LIFE = 24;
+
+    let raf: number;
     const draw = () => {
       const w = canvas.width;
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      // ── Shooting stars ────────────────────────────────────────────────────
-      const updated: ShootingStar[] = [];
-      for (const s of starsRef.current) {
-        s.life += s.speed * 0.0015;
+      // Age and cull trail points
+      for (let i = trail.length - 1; i >= 0; i--) {
+        trail[i].age++;
+        if (trail[i].age > LIFE) trail.splice(i, 1);
+      }
+
+      // Draw sparkler trail
+      for (const p of trail) {
+        const t = 1 - p.age / LIFE;
+        const r = 0.4 + t * 3.6;
+        const a = t * t;
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.shadowBlur  = 6 + t * 16;
+        ctx.shadowColor = "rgba(255,200,80,0.9)";
+        ctx.fillStyle   = t > 0.5
+          ? "rgba(255,252,210,1)"
+          : "rgba(255,150,30,1)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.1, r), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Shooting stars
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
+        s.life += s.speed * 0.002;
         s.x += s.vx;
         s.y += s.vy;
-
-        const fade = s.life < 0.2
-          ? s.life / 0.2
-          : s.life > 0.8
-          ? 1 - (s.life - 0.8) / 0.2
-          : 1;
-        s.opacity = s.maxOpacity * fade;
-
-        if (s.opacity > 0) {
+        const fade = s.life < 0.2 ? s.life / 0.2
+          : s.life > 0.8 ? 1 - (s.life - 0.8) / 0.2 : 1;
+        const alpha = s.maxOpacity * fade;
+        if (alpha > 0.005) {
           ctx.save();
-          ctx.globalAlpha = s.opacity;
-          ctx.strokeStyle = "rgba(255, 235, 150, 1)";
-          ctx.lineWidth = 1;
-          ctx.shadowBlur = 6;
-          ctx.shadowColor = "rgba(255, 200, 80, 0.6)";
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = "rgba(255,235,150,1)";
+          ctx.lineWidth   = 1;
+          ctx.shadowBlur  = 6;
+          ctx.shadowColor = "rgba(255,200,80,0.6)";
           ctx.beginPath();
           ctx.moveTo(s.x, s.y);
           ctx.lineTo(s.x - s.vx * s.length, s.y - s.vy * s.length);
           ctx.stroke();
           ctx.restore();
         }
-
-        updated.push(s.life < 1 ? s : newShootingStar(w, h));
-      }
-      starsRef.current = updated;
-
-      // ── Cursor trail — oldest→newest: radius 0.3→4px, opacity 0→1, blur 0→20 ──
-      const trail = trailRef.current;
-      if (trail.length > 1) {
-        const last = trail.length - 1;
-        for (let i = 0; i < trail.length; i++) {
-          const t      = i / last;
-          const radius = 0.3 + t * 3.7;
-          const blur   = t * 20;
-
-          ctx.save();
-          ctx.globalAlpha = t;
-          ctx.shadowBlur  = blur;
-          ctx.shadowColor = "rgba(255, 200, 80, 0.9)";
-          ctx.fillStyle   = "rgba(255, 235, 150, 1)";
-          ctx.beginPath();
-          ctx.arc(trail[i].x, trail[i].y, Math.max(0.1, radius), 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
+        if (s.life >= 1) stars[i] = mkStar(w, h);
       }
 
-      rafRef.current = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(draw);
     };
-
-    rafRef.current = requestAnimationFrame(draw);
+    raf = requestAnimationFrame(draw);
 
     return () => {
-      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mousemove", onMove);
       window.removeEventListener("resize", resize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      cancelAnimationFrame(raf);
     };
   }, []);
 
   return (
     <canvas
-      ref={canvasRef}
+      ref={ref}
       style={{
         position: "fixed",
         top: 0,
         left: 0,
-        width: "100vw",
-        height: "100vh",
         pointerEvents: "none",
         zIndex: 9999,
       }}
