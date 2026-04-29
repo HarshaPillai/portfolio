@@ -264,10 +264,19 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
   const [isMobile, setIsMobile]           = useState(false);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    let timeout: ReturnType<typeof setTimeout>;
+    const check = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setIsMobile(window.innerWidth < 768);
+      }, 150);
+    };
     check();
     window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    return () => {
+      window.removeEventListener("resize", check);
+      clearTimeout(timeout);
+    };
   }, []);
 
   const router = useRouter();
