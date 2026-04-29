@@ -404,7 +404,10 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
       },
     });
 
-    const onResize = () => render(scrollProgRef.current);
+    const onResize = () => {
+      ScrollTrigger.refresh();
+      render(scrollProgRef.current);
+    };
     window.addEventListener("resize", onResize);
 
     return () => {
