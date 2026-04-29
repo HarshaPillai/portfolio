@@ -94,7 +94,8 @@ export const getLandingProjects = groq`
     isLive,
     isExternal,
     externalUrl,
-    order
+    order,
+    mobileOrder
   }
 `;
 

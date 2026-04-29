@@ -496,10 +496,18 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
           : "Coming Soon";
 
   if (isMobile) {
+    const mobileProjects = [...projects]
+      .sort((a, b) => {
+        const ao = a.mobileOrder ?? a.order ?? 999;
+        const bo = b.mobileOrder ?? b.order ?? 999;
+        return ao - bo;
+      })
+      .map(toDisplay);
+
     return (
       <>
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 32, paddingTop: 24, paddingBottom: 24 }}>
-          {displayProjects.map((p, i) => (
+          {mobileProjects.map((p, i) => (
             <MobileProjectCard
               key={i}
               p={p}

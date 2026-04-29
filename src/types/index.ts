@@ -75,6 +75,7 @@ export type LandingProject = {
   isExternal?: boolean;
   externalUrl?: string;
   order?: number;
+  mobileOrder?: number;
 };
 
 // ─── v2 types (new schema) ────────────────────────────────────────────────────
