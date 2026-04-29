@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
   const expected = process.env.NDA_PASSWORD;
 
   if (!expected) {
-    // Env var not set — fail closed
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -19,5 +18,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set("nda_access", "true", {
+    httpOnly: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+    sameSite: "lax",
+  });
+  return res;
 }

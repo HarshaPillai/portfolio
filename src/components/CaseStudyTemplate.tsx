@@ -361,8 +361,16 @@ useEffect(() => {
       const progress = Math.max(0, Math.min(1, -activeTop / chapterHeight));
       setScrollProgress((activeIndex + progress) / (chapters.length - 1));
     } else {
-      // Last chapter — fill to 100%
-      setScrollProgress(1);
+      // Last chapter — complete when section enters viewport
+      const lastEl = document.getElementById(chapters[chapters.length - 1].id);
+      if (lastEl) {
+        const lastRect = lastEl.getBoundingClientRect();
+        if (lastRect.top - containerTop < container.clientHeight) {
+          setScrollProgress(1);
+        }
+      } else {
+        setScrollProgress(1);
+      }
     }
   };
 
