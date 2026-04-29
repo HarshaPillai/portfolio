@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import BsideLoader from "@/components/BsideLoader";
 
 
@@ -25,7 +24,6 @@ export type LabItem = {
 // ─── Star field ───────────────────────────────────────────────────────────────
 
 const STARS = Array.from({ length: 52 }, (_, i) => {
-  // Deterministic pseudo-random using index so it's stable across renders
   const seed = (i * 2654435761) >>> 0;
   const x = ((seed ^ (seed >> 16)) % 10000) / 100;
   const y = (((seed * 1664525 + 1013904223) >>> 0) % 10000) / 100;
@@ -134,111 +132,172 @@ function LabCard({
   onClick,
   priority,
   visible,
+  isMobile,
 }: {
   item: LabItem;
   onClick: (item: LabItem) => void;
   priority?: boolean;
   visible: boolean;
+  isMobile: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={() => onClick(item)}
       style={{
-        position: "relative",
-        overflow: "hidden",
-        cursor: "pointer",
-        borderRadius: 4,
-        border: `1px solid ${hovered ? "#FF5500" : "rgba(255,255,255,0.06)"}`,
-        transition: "border-color 0.2s ease, opacity 0.3s ease, transform 0.3s ease",
         breakInside: "avoid",
         marginBottom: 12,
         display: "block",
-        willChange: "transform, opacity",
-        transform: visible ? "translateZ(0)" : "translateY(6px) translateZ(0)",
-        opacity: visible ? 1 : 0,
       }}
     >
-      {item.thumbnailUrl ? (
-        <Image
-          src={item.thumbnailUrl}
-          alt={item.title}
-          width={800}
-          height={600}
-          quality={80}
-          priority={priority}
-          loading={priority ? undefined : "lazy"}
-          sizes="(max-width: 768px) 100vw, 33vw"
-          style={{ display: "block", width: "100%", height: "auto" }}
-        />
-      ) : (
-        <div style={{ width: "100%", minHeight: 180, background: "rgba(255,255,255,0.04)" }} />
-      )}
-
-      {/* Hover metadata panel */}
+      {/* Image container */}
       <div
+        onMouseEnter={() => !isMobile && setHovered(true)}
+        onMouseLeave={() => !isMobile && setHovered(false)}
+        onClick={() => onClick(item)}
         style={{
-          position: "absolute",
-          bottom: 0, left: 0, right: 0,
-          background: "rgba(0,0,0,0.88)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          padding: "14px 16px",
-          transform: hovered ? "translateY(0)" : "translateY(100%)",
-          transition: "transform 0.25s ease",
-          willChange: "transform",
+          position: "relative",
+          overflow: "hidden",
+          cursor: "pointer",
+          borderRadius: isMobile ? "4px 4px 0 0" : 4,
+          border: `1px solid ${hovered ? "#FF5500" : "rgba(255,255,255,0.06)"}`,
+          borderBottom: isMobile ? "none" : undefined,
+          transition: "border-color 0.2s ease, opacity 0.3s ease, transform 0.3s ease",
+          willChange: "transform, opacity",
+          transform: visible ? "translateZ(0)" : "translateY(6px) translateZ(0)",
+          opacity: visible ? 1 : 0,
         }}
       >
-        <div style={{ marginBottom: 6 }}>
-          <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 2 }}>
-            Project
+        {item.thumbnailUrl ? (
+          <Image
+            src={item.thumbnailUrl}
+            alt={item.title}
+            width={800}
+            height={600}
+            quality={80}
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
+            sizes="(max-width: 768px) 100vw, 33vw"
+            style={{ display: "block", width: "100%", height: "auto" }}
+          />
+        ) : (
+          <div style={{ width: "100%", minHeight: 180, background: "rgba(255,255,255,0.04)" }} />
+        )}
+
+        {/* Hover metadata panel — desktop only */}
+        {!isMobile && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0, left: 0, right: 0,
+              background: "rgba(0,0,0,0.88)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              padding: "14px 16px",
+              transform: hovered ? "translateY(0)" : "translateY(100%)",
+              transition: "transform 0.25s ease",
+              willChange: "transform",
+            }}
+          >
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 2 }}>
+                Project
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif", fontSize: 16, fontWeight: 500, color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: 1.2 }}>
+                  {item.title}
+                </span>
+                {item.type === "external" && (
+                  <span style={{ color: "#FF5500", fontSize: 14, lineHeight: 1 }}>↗</span>
+                )}
+              </div>
+            </div>
+
+            {item.year && (
+              <div style={{ marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 2 }}>
+                  Year
+                </div>
+                <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
+                  {item.year}
+                </div>
+              </div>
+            )}
+
+            {item.about && (
+              <div style={{ marginBottom: 4 }}>
+                <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 2 }}>
+                  About
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                    fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.45,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.about}
+                </div>
+              </div>
+            )}
+
+            <StatusPip status={item.status} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif", fontSize: 16, fontWeight: 500, color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: 1.2 }}>
+        )}
+      </div>
+
+      {/* Mobile info below image */}
+      {isMobile && (
+        <div
+          style={{
+            background: "rgba(0,0,0,0.6)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            borderTop: "none",
+            borderRadius: "0 0 4px 4px",
+            padding: "10px 12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: item.about ? 4 : 0 }}>
+            <span style={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#FFFFFF",
+              letterSpacing: "-0.02em",
+              lineHeight: 1.2,
+            }}>
               {item.title}
             </span>
             {item.type === "external" && (
-              <span style={{ color: "#FF5500", fontSize: 14, lineHeight: 1 }}>↗</span>
+              <span style={{ color: "#FF5500", fontSize: 12, lineHeight: 1 }}>↗</span>
+            )}
+            {item.year && (
+              <span style={{
+                fontFamily: "var(--font-dm-mono), 'DM Mono', monospace",
+                fontSize: 10,
+                color: "rgba(255,255,255,0.35)",
+                marginLeft: "auto",
+                flexShrink: 0,
+              }}>
+                {item.year}
+              </span>
             )}
           </div>
-        </div>
-
-        {item.year && (
-          <div style={{ marginBottom: 6 }}>
-            <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 2 }}>
-              Year
-            </div>
-            <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
-              {item.year}
-            </div>
-          </div>
-        )}
-
-        {item.about && (
-          <div style={{ marginBottom: 4 }}>
-            <div style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 2 }}>
-              About
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-                fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.45,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
+          {item.about && (
+            <div style={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontSize: 11,
+              color: "rgba(255,255,255,0.5)",
+              lineHeight: 1.5,
+            }}>
               {item.about}
             </div>
-          </div>
-        )}
-
-        <StatusPip status={item.status} />
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -312,6 +371,14 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
   const [loaded, setLoaded]             = useState(false);
   const [lightboxItem, setLightboxItem] = useState<LabItem | null>(null);
   const [activeTag, setActiveTag]       = useState<string>("All");
+  const [isMobile, setIsMobile]         = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     document.body.classList.add("bside-page");
@@ -329,14 +396,12 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
     };
   }, []);
 
-  // Collect unique tags from all items
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
     labs.forEach(item => item.tags?.forEach(t => tagSet.add(t)));
     return ["All", ...Array.from(tagSet).sort()];
   }, [labs]);
 
-  // Filter items by active tag
   const filteredLabs = useMemo(() => {
     if (activeTag === "All") return labs;
     return labs.filter(item => item.tags?.includes(activeTag));
@@ -358,34 +423,23 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
         overflowY: "auto",
       }}
     >
-      {/* Star field */}
       <StarField />
 
-      {/* CD loader */}
       {!loaded && (
         <BsideLoader direction="enter" onComplete={() => setLoaded(true)} />
       )}
 
-      {/* Page content */}
       <div
         style={{
           position: "relative",
           zIndex: 10,
-          padding: "72px 48px 80px",
+          padding: isMobile ? "72px 16px 80px" : "72px 48px 80px",
           opacity: loaded ? 1 : 0,
           transition: "opacity 0.45s ease 0.1s",
         }}
       >
-        {/* Tag filter pills */}
         {allTags.length > 1 && (
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 8,
-              marginBottom: 36,
-            }}
-          >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
             {allTags.map(tag => (
               <TagPill
                 key={tag}
@@ -399,8 +453,7 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
 
         <div style={{ height: 1, backgroundColor: "rgba(255,255,255,0.06)", marginBottom: 36 }} />
 
-        {/* Masonry grid */}
-        <div style={{ columns: "3 280px", gap: 12 }}>
+        <div style={{ columns: isMobile ? "1" : "3 280px", gap: 12 }}>
           {labs.length === 0
             ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} height={h} />)
             : filteredLabs.map((item, i) => (
@@ -410,11 +463,11 @@ export default function BSideClient({ labs }: { labs: LabItem[] }) {
                   onClick={handleCardClick}
                   priority={i < 2}
                   visible={true}
+                  isMobile={isMobile}
                 />
               ))}
         </div>
 
-        {/* Empty state when tag has no items */}
         {labs.length > 0 && filteredLabs.length === 0 && (
           <div
             style={{
