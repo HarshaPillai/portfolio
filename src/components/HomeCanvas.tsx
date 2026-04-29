@@ -413,9 +413,14 @@ export default function HomeCanvas({ projects }: { projects: LandingProject[] })
     return () => {
       renderRef.current = null;
       st.kill();
+      ScrollTrigger.refresh();
       window.removeEventListener("resize", onResize);
+      // Reset all frame positions on teardown
+      frameRefs.current.forEach(el => {
+        if (el) gsap.set(el, { opacity: 0 });
+      });
     };
-  }, []);
+  }, [isMobile]);
 
   // ── Intro: fade-in then one slow orbit rotation ────────────────────────────
   useEffect(() => {
