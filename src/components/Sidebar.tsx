@@ -288,6 +288,9 @@ export default function Sidebar() {
         >
           {navLinks.map(({ href, label }) => {
             const active = isActive(href);
+            const defaultColor = active
+              ? (isDark ? "rgba(255,255,255,0.85)" : "#3A3A3A")
+              : (isDark ? "rgba(255,255,255,0.2)" : "#B5B5B5");
             return (
               <Link
                 key={href}
@@ -298,13 +301,13 @@ export default function Sidebar() {
                   fontSize: "30px",
                   fontWeight: 500,
                   letterSpacing: "-0.05em",
-                  color: active
-                    ? (isDark ? "rgba(255,255,255,0.85)" : "#3A3A3A")
-                    : (isDark ? "rgba(255,255,255,0.2)"  : "#B5B5B5"),
+                  color: defaultColor,
                   lineHeight: 1.3,
                   textDecoration: "none",
                   transition: "color 0.15s ease",
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#F35900")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = defaultColor)}
               >
                 {label}
               </Link>

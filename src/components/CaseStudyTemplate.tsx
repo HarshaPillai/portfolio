@@ -285,11 +285,9 @@ function FeatureVideo({ url }: { url: string }) {
 
 export default function CaseStudyTemplate({ project }: { project: CaseStudyProject }) {
   const [activeChapter, setActiveChapter] = useState("overview");
+  const [hoveredChapter, setHoveredChapter] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [dotGap, setDotGap] = useState(28);
-  const navRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -329,61 +327,28 @@ export default function CaseStudyTemplate({ project }: { project: CaseStudyProje
       list.push({ id: "learned", label: "Learnings" });
     return list;
   }, [project]);
-useEffect(() => {
-  const container = scrollContainerRef.current;
-  if (!container) return;
 
-  const onScroll = () => {
-    const containerTop = container.getBoundingClientRect().top;
-    let activeId = chapters[0]?.id ?? "overview";
-
-    for (const ch of chapters) {
-      const el = document.getElementById(ch.id);
-      if (!el) continue;
-      const rect = el.getBoundingClientRect();
-      if (rect.top - containerTop < container.clientHeight * 0.3) {
-        activeId = ch.id;
-      }
-    }
-    setActiveChapter(activeId);
-
-    const activeIndex = chapters.findIndex(c => c.id === activeId);
-    const activeEl = document.getElementById(activeId);
-    const nextIdx = activeIndex + 1;
-    const nextEl = nextIdx < chapters.length
-      ? document.getElementById(chapters[nextIdx].id)
-      : null;
-
-    if (activeEl && nextEl) {
-      const activeTop = activeEl.getBoundingClientRect().top - containerTop;
-      const nextTop = nextEl.getBoundingClientRect().top - containerTop;
-      const chapterHeight = nextTop - activeTop;
-      const progress = Math.max(0, Math.min(1, -activeTop / chapterHeight));
-      setScrollProgress((activeIndex + progress) / (chapters.length - 1));
-    } else {
-      // Last chapter — complete when section enters viewport
-      const lastEl = document.getElementById(chapters[chapters.length - 1].id);
-      if (lastEl) {
-        const lastRect = lastEl.getBoundingClientRect();
-        if (lastRect.top - containerTop < container.clientHeight) {
-          setScrollProgress(1);
-        }
-      } else {
-        setScrollProgress(1);
-      }
-    }
-  };
-
-  container.addEventListener("scroll", onScroll, { passive: true });
-  return () => container.removeEventListener("scroll", onScroll);
-}, [chapters]);
   useEffect(() => {
-    if (!navRef.current) return;
-    const items = navRef.current.querySelectorAll<HTMLElement>("[data-chapter-item]");
-    if (items.length < 2) return;
-    const first = items[0].getBoundingClientRect();
-    const second = items[1].getBoundingClientRect();
-    setDotGap(second.top - first.top);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const onScroll = () => {
+      const containerTop = container.getBoundingClientRect().top;
+      let activeId = chapters[0]?.id ?? "overview";
+
+      for (const ch of chapters) {
+        const el = document.getElementById(ch.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top - containerTop < container.clientHeight * 0.3) {
+          activeId = ch.id;
+        }
+      }
+      setActiveChapter(activeId);
+    };
+
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
   }, [chapters]);
 
   const scrollTo = (id: string) =>
@@ -443,60 +408,38 @@ useEffect(() => {
             onMouseLeave={e => (e.currentTarget.style.color = "rgba(58,58,58,0.5)")}
           >← Projects</Link>
 
-          {(() => {
-            const activeIndex = chapters.findIndex(c => c.id === activeChapter);
-            const totalLineH = (chapters.length - 1) * dotGap;
-            const fillH = chapters.length > 1
-              ? scrollProgress * totalLineH
-              : 0;
-            return (
-              <div ref={navRef} style={{ position: "relative", display: "flex", flexDirection: "column" }}>
-                {/* Base gray line */}
-                <div style={{
-                  position: "absolute", left: 3, top: 3,
-                  width: 1, height: totalLineH,
-                  backgroundColor: "rgba(0,0,0,0.08)",
-                }} />
-                {/* Orange progress fill */}
-                <div style={{
-                  position: "absolute", left: 3, top: 3,
-                  width: 1, height: fillH,
-                  backgroundColor: "#F35900",
-                  transition: "height 0.1s linear",
-                }} />
-
-                {chapters.map(({ id, label }, idx) => {
-                  const isActive = activeChapter === id;
-                  const isDone = idx < activeIndex;
-                  return (
-                    <div
-                      key={id}
-                      data-chapter-item
-                      onClick={() => scrollTo(id)}
-                      style={{
-                        display: "flex", alignItems: "center",
-                        gap: 10, cursor: "pointer",
-                        marginBottom: 28, position: "relative",
-                      }}
-                    >
-                      <div style={{
-                        width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-                        backgroundColor: (isActive || isDone) ? "#F35900" : "transparent",
-                        border: (isActive || isDone) ? "none" : "1.5px solid rgba(0,0,0,0.2)",
-                        transition: "all 0.2s",
-                      }} />
-                      <span style={{
-                        fontFamily: "var(--font-dm-mono), monospace",
-                        fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em",
-                        color: isActive ? "#F35900" : isDone ? "rgba(243,89,0,0.5)" : "rgba(58,58,58,0.4)",
-                        transition: "color 0.2s",
-                      }}>{label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {chapters.map(({ id, label }) => {
+              const isActive = activeChapter === id;
+              const isHovered = hoveredChapter === id;
+              const highlighted = isActive || isHovered;
+              return (
+                <div
+                  key={id}
+                  onClick={() => scrollTo(id)}
+                  onMouseEnter={() => setHoveredChapter(id)}
+                  onMouseLeave={() => setHoveredChapter(null)}
+                  style={{
+                    cursor: "pointer",
+                    paddingLeft: highlighted ? 12 : 0,
+                    paddingTop: 6,
+                    paddingBottom: 6,
+                    transition: "padding-left 0.15s ease",
+                  }}
+                >
+                  <span style={{
+                    fontFamily: "var(--font-dm-mono), monospace",
+                    fontSize: 9,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    fontWeight: isActive ? 700 : 400,
+                    color: highlighted ? "#F35900" : "rgba(58,58,58,0.4)",
+                    transition: "color 0.15s ease",
+                  }}>{label}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
